@@ -333,10 +333,38 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
       $app.innerHTML = head(true) +
         '<div class="hero"><div class="hi">내 정보</div><h1>' + esc(ME.name) + '</h1></div>' +
         '<div class="card"><div class="stat3"><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div><div><b>' + fmt(ME.best) + '</b><span>한 판 최고</span></div><div><b>' + (ME.ta ? secs(ME.ta) : '-') + '</b><span>타임어택 최고</span></div></div>' +
-        '<div class="sub" style="text-align:center;margin-top:12px">지금까지 ' + fmt(ME.plays) + '판 했어요.</div></div>';
+        '<div class="sub" style="text-align:center;margin-top:12px">지금까지 ' + fmt(ME.plays) + '판 했어요.</div></div>' +
+        (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">비밀번호를 0000으로 되돌려요. 다음 로그인 때 새 비밀번호를 정해요.</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
       tabs('me');
       document.getElementById('lo').onclick = out;
+      if (ME.admin) adminList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
+  }
+  function adminList(note) {
+    rpc('gugu_admin_list', { tok: TOKEN }).then(function (r) {
+      var box = document.getElementById('alist'); if (!box || !r.list) return;
+      var h = note || '';
+      r.list.forEach(function (x) {
+        h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + '<small>' + fmt(x.points) + '점' + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
+      });
+      box.innerHTML = h;
+      var bs = box.querySelectorAll('[data-r]');
+      for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { askReset(this.getAttribute('data-r')); };
+    }).catch(function (e) { if (e.login) lost(); });
+  }
+  function askReset(name) {
+    var o = document.createElement('div'); o.className = 'ovl';
+    o.innerHTML = '<div class="box"><h2>' + esc(name) + ' 비밀번호 초기화</h2><p>비밀번호를 0000으로 되돌리고, 로그인된 기기는 로그아웃돼요. 점수는 그대로예요.</p>' +
+      '<div class="two"><button id="no">취소</button><button id="yes" class="red">초기화</button></div></div>';
+    document.body.appendChild(o);
+    document.getElementById('no').onclick = function () { document.body.removeChild(o); };
+    document.getElementById('yes').onclick = function () {
+      this.disabled = true;
+      rpc('gugu_admin_reset', { tok: TOKEN, p_id: name }).then(function (r) {
+        document.body.removeChild(o);
+        adminList('<div class="msg ' + (r.ok ? 'ok' : '') + '">' + esc(r.ok ? name + ' 비밀번호를 0000으로 초기화했어요.' : '초기화하지 못했어요.') + '</div>');
+      }).catch(function (e) { document.body.removeChild(o); if (e.login) lost(); });
+    };
   }
   function secs(ms) { return (ms / 1000).toFixed(2) + '초'; }
   function drawTA(b) {
