@@ -10,13 +10,13 @@
 <meta name="apple-mobile-web-app-title" content="캐슬 구구단">
 <meta name="theme-color" content="#0B0C0F">
 <title>캐슬 구구단</title>
-<meta name="description" content="5초 안에 답을 눌러라! 구구단 게임 · 점수를 모아 보세요">
+<meta name="description" content="캐슬 구구단">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="캐슬 구구단">
 <meta property="og:title" content="캐슬 구구단">
-<meta property="og:description" content="5초 안에 답을 눌러라! 구구단 게임 · 점수를 모아 보세요">
+<meta property="og:description" content="캐슬 구구단">
 <meta property="og:url" content="https://gugu.kastlemath.com/">
-<meta property="og:image" content="https://gugu.kastlemath.com/og.png">
+<meta property="og:image" content="https://gugu.kastlemath.com/og2.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -154,7 +154,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     var up = mode === 'up';
     GUEST = false;
     $app.innerHTML = head(false) +
-      '<div class="hero"><div class="hi">구구단 도전!</div><h1>캐슬 구구단</h1><div class="tip">5초 안에 답을 눌러요.<br>로그인하면 점수가 차곡차곡 쌓여요.</div></div>' +
+      '<div class="hero"><div class="hi">구구단 도전!</div><h1>캐슬 구구단</h1><div class="tip">로그인하면 점수가 차곡차곡 쌓여요.</div></div>' +
       '<div class="card"><div class="seg"><button id="tin" class="' + (up ? '' : 'on') + '">로그인</button><button id="tup" class="' + (up ? 'on' : '') + '">가입하기</button></div>' +
       '<label for="uid">아이디' + (up ? ' (한글·영문·숫자 2~12자)' : '') + '</label><input id="uid" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="12">' +
       '<label for="upw">비밀번호 (숫자 4자리)</label><input id="upw" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="' + (up ? 'new-password' : 'current-password') + '">' +
@@ -222,7 +222,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     });
     if (myRank && myRank > top.length) rows += '<div class="r me"><span class="no">' + myRank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + fmt(ME.points) + '점</span></div>';
     $app.innerHTML = head(true) +
-      '<div class="hero"><div class="hi">5초 안에 눌러라!</div><h1>' + esc(ME.name) + '님,<br>구구단 도전!</h1></div>' +
+      '<div class="hero"><div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1></div>' +
       (GUEST ? '<div class="card"><h2>로그인 없이 하는 중이에요</h2><div class="sub">점수는 저장되지 않아요. 가입하면 점수가 차곡차곡 쌓여요.</div><button class="cta ghost" id="reg" style="margin-top:12px;height:48px;font-size:15.5px">가입하고 점수 모으기</button></div>'
         : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
       '<div class="card"><h2>연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
