@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="color-scheme" content="dark">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -19,13 +19,20 @@
 html{-webkit-text-size-adjust:100%;background:var(--bg)}
 body{margin:0;min-height:100vh;color:var(--ink);font-family:'Pretendard Variable',Pretendard,-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;line-height:1.5;letter-spacing:-.01em;font-size:16px;word-break:keep-all;
   background:radial-gradient(ellipse 120% 46% at 50% -8%,rgba(225,38,45,.15) 0%,rgba(225,38,45,0) 62%),radial-gradient(ellipse 90% 40% at 100% 38%,rgba(203,170,108,.05) 0%,rgba(203,170,108,0) 60%),#0B0C0F;background-attachment:fixed;
-  -webkit-user-select:none;user-select:none;touch-action:manipulation}
+  -webkit-user-select:none;user-select:none}
 #app{max-width:520px;margin:0 auto;padding:18px 16px calc(32px + env(safe-area-inset-bottom,0px))}
-button{font:inherit;font-weight:700;cursor:pointer;color:var(--ink);border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 16px;transition:transform .06s,background .15s,opacity .15s}
+button{font:inherit;font-weight:700;cursor:pointer;color:var(--ink);border:1px solid var(--line);background:var(--card);border-radius:12px;padding:12px 16px;transition:transform .06s,background .15s,opacity .15s;touch-action:manipulation}
 button:active{transform:scale(.97)}
+button:disabled{opacity:.5;cursor:default}
+input{font:inherit;width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:12px;background:#0F1014;color:var(--ink);outline:none;font-size:18px;-webkit-user-select:text;user-select:text;touch-action:auto}
+input:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(225,38,45,.18)}
+label{display:block;font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 6px}
+.err{color:var(--bad);min-height:22px;margin-top:10px;font-size:14px;font-weight:600}
 .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .brand{display:flex;align-items:center;gap:10px;font-size:17px;font-weight:700;letter-spacing:-.03em}
 .brand img{width:34px;height:34px;display:block}
+.who{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.who button{padding:6px 10px;font-size:12.5px;border-radius:8px;color:var(--sub)}
 .card{background:linear-gradient(180deg,#181A20 0%,#14161B 100%);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px;margin-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.045) inset,0 14px 34px rgba(0,0,0,.40)}
 .hero{position:relative;overflow:hidden;background:linear-gradient(118deg,#1D1F26 0%,#121317 62%,#1A1B20 100%);border:1px solid rgba(255,255,255,.075);border-radius:18px;padding:22px 20px;margin-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 22px 48px rgba(0,0,0,.55)}
 .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 96% 6%,rgba(225,38,45,.30),transparent 46%),radial-gradient(ellipse at 4% 110%,rgba(203,170,108,.12),transparent 50%);pointer-events:none}
@@ -41,22 +48,33 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .dans button.all{grid-column:span 4;font-size:15.5px}
 .cta{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:58px;border:none;border-radius:14px;font-size:18px;font-weight:700;color:#fff;background:linear-gradient(180deg,#EB323A 0%,#BD1820 100%);box-shadow:0 12px 28px rgba(225,38,45,.30),0 1px 0 rgba(255,255,255,.25) inset}
 .cta.ghost{background:var(--card);border:1px solid var(--line);box-shadow:none;color:var(--ink);margin-top:10px}
-.best{display:flex;align-items:center;gap:10px;color:#B3B4BC;font-size:14px}
-.best b{color:var(--gold);font-size:20px;letter-spacing:-.03em}
+.total{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.total .lb{color:#B3B4BC;font-size:14px}
+.total .v{font-size:40px;font-weight:800;letter-spacing:-.05em;line-height:1.05;font-variant-numeric:tabular-nums}
+.total .v small{font-size:17px;color:var(--gold);margin-left:4px;letter-spacing:0}
+.total .bt{text-align:right;color:var(--sub);font-size:12.5px}.total .bt b{display:block;color:var(--gold);font-size:19px;letter-spacing:-.03em}
+.board{margin-top:10px}
+.board .r{display:flex;align-items:center;gap:10px;padding:10px 4px;border-top:1px solid var(--line);font-weight:700}
+.board .r:first-child{border-top:none}
+.board .r .no{width:22px;color:var(--gold);font-weight:800}
+.board .r .nm{flex:1}
+.board .r .pt{font-variant-numeric:tabular-nums}
+.board .r.me .nm{color:var(--gold)}
 /* 게임 화면 */
 .hud{display:flex;align-items:center;justify-content:space-between;margin:4px 2px 10px;font-weight:700}
 .hud .n{color:var(--sub);font-size:15px}.hud .n b{color:var(--ink)}
 .hud .sc{font-size:22px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.hud .sc small{font-size:13px;color:var(--gold);margin-left:3px}
+.hud .sc.neg{color:var(--bad)}
 .tbar{height:12px;background:rgba(255,255,255,.08);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .tbar>i{display:block;height:100%;width:100%;border-radius:12px;background:linear-gradient(90deg,#CBAA6C,#E1262D);transform-origin:left}
 .tbar.low>i{background:var(--bad)}
-.q{text-align:center;padding:34px 10px 30px}
-.q .eq{font-size:64px;font-weight:800;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
+.q{text-align:center;padding:30px 10px 26px}
+.q .eq{font-size:62px;font-weight:800;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
 .q .eq span{color:var(--gold);margin:0 .12em}
 .q .eq em{font-style:normal;color:var(--sub)}
 .combo{height:24px;text-align:center;color:var(--gold);font-weight:700;font-size:15px;margin:-4px 0 8px}
-.opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.opts button{height:92px;font-size:36px;font-weight:800;letter-spacing:-.03em;border-radius:16px;background:linear-gradient(180deg,#1D1F26,#15171C);border:1px solid rgba(255,255,255,.1);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 24px rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
+.opts{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.opts button{height:84px;font-size:34px;font-weight:800;letter-spacing:-.03em;border-radius:16px;background:linear-gradient(180deg,#1D1F26,#15171C);border:1px solid rgba(255,255,255,.1);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 24px rgba(0,0,0,.4);font-variant-numeric:tabular-nums}
 .opts button.good{background:var(--ok);border-color:var(--ok);color:#06210f}
 .opts button.wrong{background:var(--bad);border-color:var(--bad);color:#2a0507}
 .opts.lock button{pointer-events:none}
@@ -67,11 +85,13 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .stars .off{opacity:.18;filter:grayscale(1)}
 .big{font-size:56px;font-weight:800;letter-spacing:-.05em;text-align:center;line-height:1.1;font-variant-numeric:tabular-nums}
 .big small{font-size:20px;color:var(--gold);margin-left:4px}
+.big.neg{color:var(--bad)}
 .stat3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0 4px}
 .stat3>div{background:#0F1014;border-radius:10px;padding:12px 6px;text-align:center}
-.stat3 b{display:block;font-size:22px;letter-spacing:-.03em}.stat3 span{font-size:12px;color:var(--sub)}
+.stat3 b{display:block;font-size:20px;letter-spacing:-.03em}.stat3 span{font-size:12px;color:var(--sub)}
 .newrec{text-align:center;color:var(--gold);font-weight:800;margin-top:10px}
-@media (max-width:360px){.q .eq{font-size:54px}.opts button{height:82px;font-size:30px}}
+.warn{text-align:center;color:var(--bad);font-size:13px;margin-top:10px}
+@media (max-width:360px){.q .eq{font-size:52px}.opts button{height:76px;font-size:30px}}
 </style>
 </head>
 <body>
@@ -79,45 +99,115 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 <script>
 (function () {
   var $app = document.getElementById('app');
+  var SB = 'https://iydtrglylllkljayumxl.supabase.co/rest/v1/rpc/', KEY = 'sb_publishable_MlqyFLfElmhIUCACI4X3Xg_ALEzPXfb';
+  var TK = 'castle-gugudan-token';
   var ROUNDS = 10, SEC = 5, PAUSE = 900;
-  var picked = [];            // 고른 단 (비어 있으면 전체)
-  var G = null;               // 진행 중인 게임
-  var KEY = 'castle-gugudan-best';
+  var MSG = { bad_login: '아이디 또는 비밀번호가 맞지 않습니다.', pw_format: '비밀번호는 숫자 4자리로 정해 주세요.', pw_zero: '0000은 쓸 수 없습니다. 다른 숫자로 정해 주세요.' };
+  var picked = [], G = null, ME = null, TOKEN = '';
 
-  function best() { try { return +localStorage.getItem(KEY) || 0; } catch (e) { return 0; } }
-  function saveBest(v) { try { localStorage.setItem(KEY, String(v)); } catch (e) {} }
+  function store(v) { try { if (v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); } catch (e) {} }
+  function stored() { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } }
   function rnd(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
   function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = rnd(0, i), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
-  function head() { return '<div class="top"><span class="brand"><img src="logo_mark.png" alt="캐슬"><b>캐슬 구구단</b></span></div>'; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+
+  // ---------- 서버 ----------
+  function rpc(fn, body) {
+    return fetch(SB + fn, { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json().catch(function () { return null; }).then(function (j) {
+        if (!r.ok) { var e = new Error((j && j.message) || '오류'); e.login = (j && j.message) === 'LOGIN'; throw e; }
+        return j; }); });
+  }
+  function lost() { store(''); TOKEN = ''; ME = null; login('다시 로그인해 주세요.'); }
+
+  function head(withWho) {
+    return '<div class="top"><span class="brand"><img src="logo_mark.png" alt="캐슬"><b>캐슬 구구단</b></span>' +
+      (withWho && ME ? '<span class="who">' + esc(ME.name) + '<button id="lo">로그아웃</button></span>' : '') + '</div>';
+  }
+
+  // ---------- 로그인 ----------
+  function login(note) {
+    $app.innerHTML = head(false) +
+      '<div class="hero"><div class="hi">구구단 도전!</div><h1>캐슬 구구단</h1><div class="tip">이름과 비밀번호로 들어와서<br>점수를 차곡차곡 모아요.</div></div>' +
+      '<div class="card"><label for="uid" style="margin-top:0">이름</label><input id="uid" autocomplete="username" autocapitalize="off" spellcheck="false">' +
+      '<label for="upw">비밀번호 (숫자 4자리)</label><input id="upw" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password">' +
+      '<div class="err" id="er">' + esc(note || '') + '</div></div><button class="cta" id="go">로그인</button>';
+    var go = document.getElementById('go');
+    function submit() {
+      var id = document.getElementById('uid').value.trim(), pw = document.getElementById('upw').value;
+      if (!id || !pw) { document.getElementById('er').textContent = '이름과 비밀번호를 입력해 주세요.'; return; }
+      go.disabled = true;
+      rpc('gugu_login', { p_id: id, p_pw: pw }).then(function (r) {
+        if (r.error) { go.disabled = false; document.getElementById('er').textContent = MSG[r.error] || '로그인에 실패했습니다.'; return; }
+        TOKEN = r.token; store(TOKEN); ME = { name: r.name, points: r.points, best: r.best };
+        r.mustChange ? changePw() : home();
+      }).catch(function () { go.disabled = false; document.getElementById('er').textContent = '연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'; });
+    }
+    go.onclick = submit;
+    document.getElementById('upw').onkeydown = function (e) { if (e.key === 'Enter') submit(); };
+  }
+
+  // ---------- 비밀번호 바꾸기 (처음 한 번) ----------
+  function changePw() {
+    $app.innerHTML = head(false) +
+      '<div class="hero"><div class="hi">처음이에요!</div><h1>' + esc(ME.name) + '님,<br>비밀번호를 정해요</h1><div class="tip">나만 아는 숫자 4자리를 정하면<br>게임을 시작할 수 있어요.</div></div>' +
+      '<div class="card"><label for="p1" style="margin-top:0">새 비밀번호 (숫자 4자리)</label><input id="p1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password">' +
+      '<label for="p2">한 번 더 입력</label><input id="p2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password">' +
+      '<div class="err" id="er"></div></div><button class="cta" id="go">정하고 시작하기</button>';
+    var go = document.getElementById('go');
+    function submit() {
+      var a = document.getElementById('p1').value, b = document.getElementById('p2').value, er = document.getElementById('er');
+      if (!/^[0-9]{4}$/.test(a)) { er.textContent = MSG.pw_format; return; }
+      if (a === '0000') { er.textContent = MSG.pw_zero; return; }
+      if (a !== b) { er.textContent = '두 번 입력한 숫자가 달라요.'; return; }
+      go.disabled = true;
+      rpc('gugu_setpw', { tok: TOKEN, pw: a }).then(function (r) {
+        if (r.error) { go.disabled = false; er.textContent = MSG[r.error] || '바꾸지 못했습니다.'; return; }
+        home();
+      }).catch(function (e) { if (e.login) lost(); else { go.disabled = false; er.textContent = '연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'; } });
+    }
+    go.onclick = submit;
+    document.getElementById('p2').onkeydown = function (e) { if (e.key === 'Enter') submit(); };
+  }
 
   // ---------- 시작 화면 ----------
   function home() {
-    var all = picked.length === 0;
-    var chips = '';
+    Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return []; })]).then(function (r) {
+      ME = r[0];
+      if (ME.mustChange) { changePw(); return; }
+      draw(r[1]);
+    }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
+  }
+  function draw(board) {
+    var all = picked.length === 0, chips = '', rows = '';
     for (var d = 2; d <= 9; d++) chips += '<button data-d="' + d + '" class="' + (picked.indexOf(d) >= 0 ? 'on' : '') + '">' + d + '단</button>';
-    $app.innerHTML = head() +
-      '<div class="hero"><div class="hi">5초 안에 눌러라!</div><h1>구구단 게임</h1><div class="tip">문제를 보고 알맞은 답을<br>3개 중에서 골라 누르세요.</div></div>' +
-      '<div class="card"><h2>연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div>' +
-      '<div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
-      '<div class="card best"><span>🏆 내 최고 점수</span><b>' + best() + '</b></div>' +
+    (board || []).forEach(function (b, i) {
+      rows += '<div class="r' + (b.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(b.name) + '</span><span class="pt">' + fmt(b.points) + '점</span></div>';
+    });
+    $app.innerHTML = head(true) +
+      '<div class="hero"><div class="hi">5초 안에 눌러라!</div><h1>' + esc(ME.name) + '님,<br>구구단 도전!</h1></div>' +
+      '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>' +
+      '<div class="card"><h2>연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
+      (rows ? '<div class="card"><h2>점수판</h2><div class="board">' + rows + '</div></div>' : '') +
       '<button class="cta" id="go">▶ 게임 시작</button>';
     var bs = $app.querySelectorAll('.dans button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () {
       var v = this.getAttribute('data-d');
       if (v === 'all') picked = [];
       else { var n = +v, k = picked.indexOf(n); if (k >= 0) picked.splice(k, 1); else picked.push(n); if (picked.length === 8) picked = []; }
-      home();
+      draw(board);
     };
     document.getElementById('go').onclick = start;
+    document.getElementById('lo').onclick = function () { store(''); TOKEN = ''; ME = null; login(''); };
   }
 
   // ---------- 문제 만들기 ----------
   function deck() {
     var dans = picked.length ? picked.slice() : [2, 3, 4, 5, 6, 7, 8, 9], pool = [];
     dans.forEach(function (a) { for (var b = 2; b <= 9; b++) pool.push([a, b]); });
-    shuffle(pool);
     var out = [];
-    while (out.length < ROUNDS) {            // 단이 적으면 한 바퀴 더 돈다 (바로 앞 문제와는 다르게)
+    while (out.length < ROUNDS) {
       shuffle(pool);
       for (var i = 0; i < pool.length && out.length < ROUNDS; i++) {
         var last = out[out.length - 1];
@@ -127,11 +217,11 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     }
     return out;
   }
-  function choices(a, b) {                   // 정답 1개 + 그럴듯한 오답 2개
+  function choices(a, b) {                   // 정답 1개 + 헷갈리기 쉬운 오답 3개
     var ans = a * b, c = {}, cand = [a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, ans + 10, ans - 10, ans + 2, ans - 2, ans + 1, ans - 1];
     shuffle(cand);
     var wrong = [];
-    for (var i = 0; i < cand.length && wrong.length < 2; i++) {
+    for (var i = 0; i < cand.length && wrong.length < 3; i++) {
       var v = cand[i];
       if (v > 0 && v !== ans && !c[v]) { c[v] = 1; wrong.push(v); }
     }
@@ -140,19 +230,22 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 
   // ---------- 게임 ----------
   function start() {
-    G = { qs: deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, lock: false, timer: 0 };
-    show();
+    var go = document.getElementById('go'); if (go) go.disabled = true;
+    rpc('gugu_start', { tok: TOKEN }).then(function () {
+      G = { qs: deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, lock: false, pend: [], fail: false };
+      show();
+    }).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
   }
   function show() {
     var q = G.qs[G.i], a = q[0], b = q[1], opts = choices(a, b);
     G.ans = a * b; G.lock = false;
     var btn = '';
     opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
-    $app.innerHTML = head() +
-      '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + ROUNDS + '</span><span class="sc">' + G.score + '<small>점</small></span></div>' +
+    $app.innerHTML = head(false) +
+      '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + ROUNDS + '</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
       '<div class="tbar" id="tb"><i id="tf"></i></div>' +
       '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
-      '<div class="combo" id="cb">' + (G.combo >= 2 ? '🔥 ' + G.combo + '연속 정답!' : '') + '</div>' +
+      '<div class="combo">' + (G.combo >= 2 ? '🔥 ' + G.combo + '연속 정답!' : '') + '</div>' +
       '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
     var bs = document.querySelectorAll('#op button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { answer(this); };
@@ -171,39 +264,47 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   function answer(el) {
     if (G.lock) return;
     G.lock = true; cancelAnimationFrame(G.raf);
-    var left = Math.max(0, SEC - (performance.now() - G.t0) / 1000);
-    var ok = el && +el.getAttribute('data-v') === G.ans, fb = document.getElementById('fb');
+    var left = Math.round(Math.max(0, Math.min(SEC, SEC - (performance.now() - G.t0) / 1000)) * 10) / 10;
+    var ok = !!el && +el.getAttribute('data-v') === G.ans, kind = ok ? 'ok' : el ? 'wrong' : 'timeout', d, fb = document.getElementById('fb');
     var op = document.getElementById('op'), bs = op.querySelectorAll('button');
     op.className = 'opts lock';
     for (var i = 0; i < bs.length; i++) if (+bs[i].getAttribute('data-v') === G.ans) bs[i].className = 'good';
     if (ok) {
       G.right++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-      var gain = 100 + Math.round(left * 20) + (G.combo >= 3 ? 20 : 0);
-      G.score += gain; fb.className = 'fb ok'; fb.textContent = '정답! +' + gain;
+      d = 100 + Math.round(left * 20) + (G.combo >= 3 ? 20 : 0);
+      fb.className = 'fb ok'; fb.textContent = '정답! +' + d;
     } else {
-      G.combo = 0; if (el) el.className = 'wrong';
-      fb.className = 'fb bad'; fb.textContent = el ? '아쉬워요! 정답은 ' + G.ans : '시간 초과! 정답은 ' + G.ans;
+      G.combo = 0; d = el ? -50 : -30; if (el) el.className = 'wrong';
+      fb.className = 'fb bad'; fb.textContent = (el ? '아쉬워요! ' : '시간 초과! ') + d + '점 · 정답은 ' + G.ans;
       if (navigator.vibrate) try { navigator.vibrate(70); } catch (e) {}
     }
-    G.timer = setTimeout(function () { G.i++; if (G.i >= ROUNDS) result(); else show(); }, PAUSE);
+    G.score += d;
+    G.pend.push(rpc('gugu_answer', { tok: TOKEN, kind: kind, secs_left: left }).then(function (r) { ME.points = r.points; ME.best = r.best; }).catch(function (e) { if (e.login) G.lostLogin = true; G.fail = true; }));
+    setTimeout(function () { G.i++; if (G.i >= ROUNDS) result(); else show(); }, PAUSE);
   }
 
   // ---------- 결과 ----------
   function result() {
-    var old = best(), isNew = G.score > old; if (isNew) saveBest(G.score);
-    var st = G.right >= 10 ? 3 : G.right >= 8 ? 2 : G.right >= 5 ? 1 : 0, s = '';
-    for (var i = 0; i < 3; i++) s += '<span class="' + (i < st ? '' : 'off') + '">⭐</span>';
-    var msg = G.right === ROUNDS ? '완벽해요! 구구단 박사!' : G.right >= 8 ? '대단해요! 거의 다 맞혔어요.' : G.right >= 5 ? '잘했어요! 조금만 더 연습해요.' : '괜찮아요. 다시 도전해 봐요!';
-    $app.innerHTML = head() +
-      '<div class="card"><div class="stars">' + s + '</div><div class="sub" style="text-align:center;margin-bottom:10px">' + msg + '</div>' +
-      '<div class="big">' + G.score + '<small>점</small></div>' + (isNew ? '<div class="newrec">🏆 새 최고 기록!</div>' : '') +
-      '<div class="stat3"><div><b>' + G.right + ' / ' + ROUNDS + '</b><span>맞힌 문제</span></div><div><b>' + G.maxCombo + '</b><span>최고 연속</span></div><div><b>' + Math.max(old, G.score) + '</b><span>최고 점수</span></div></div></div>' +
-      '<button class="cta" id="again">↻ 다시 하기</button><button class="cta ghost" id="back">처음으로</button>';
-    document.getElementById('again').onclick = start;
-    document.getElementById('back').onclick = home;
+    Promise.all(G.pend).then(function () {
+      if (G.lostLogin) { lost(); return; }
+      var st = G.right >= 10 ? 3 : G.right >= 8 ? 2 : G.right >= 5 ? 1 : 0, s = '';
+      for (var i = 0; i < 3; i++) s += '<span class="' + (i < st ? '' : 'off') + '">⭐</span>';
+      var msg = G.right === ROUNDS ? '완벽해요! 구구단 박사!' : G.right >= 8 ? '대단해요! 거의 다 맞혔어요.' : G.right >= 5 ? '잘했어요! 조금만 더 연습해요.' : '괜찮아요. 다시 도전해 봐요!';
+      $app.innerHTML = head(true) +
+        '<div class="card"><div class="stars">' + s + '</div><div class="sub" style="text-align:center;margin-bottom:10px">' + msg + '</div>' +
+        '<div class="big' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></div><div class="sub" style="text-align:center;margin-top:2px">이번 판 점수</div>' +
+        '<div class="stat3"><div><b>' + G.right + ' / ' + ROUNDS + '</b><span>맞힌 문제</span></div><div><b>' + G.maxCombo + '</b><span>최고 연속</span></div><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div></div>' +
+        (G.fail ? '<div class="warn">연결이 불안정해서 점수가 일부 저장되지 않았을 수 있어요.</div>' : '') + '</div>' +
+        '<button class="cta" id="again">↻ 다시 하기</button><button class="cta ghost" id="back">처음으로</button>';
+      document.getElementById('again').onclick = start;
+      document.getElementById('back').onclick = home;
+      document.getElementById('lo').onclick = function () { store(''); TOKEN = ''; ME = null; login(''); };
+    });
   }
 
-  home();
+  // ---------- 시작 ----------
+  TOKEN = stored();
+  if (TOKEN) home(); else login('');
 })();
 </script>
 </body>
