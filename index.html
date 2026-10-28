@@ -148,7 +148,6 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
       '<label for="uid">아이디' + (up ? ' (한글·영문·숫자 2~12자)' : '') + '</label><input id="uid" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="12">' +
       '<label for="upw">비밀번호 (숫자 4자리)</label><input id="upw" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="' + (up ? 'new-password' : 'current-password') + '">' +
       (up ? '<label for="upw2">비밀번호 한 번 더</label><input id="upw2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password">' : '') +
-      (up ? '<div class="sub" style="margin-top:12px">아이디는 점수판에 보일 수 있어요. 진짜 이름은 쓰지 마세요.</div>' : '') +
       '<div class="err" id="er">' + esc(note || '') + '</div></div>' +
       '<button class="cta" id="go">' + (up ? '가입하고 시작' : '로그인') + '</button>' +
       '<button class="cta ghost" id="guest">로그인 없이 바로 해보기</button>';
