@@ -121,7 +121,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   var $app = document.getElementById('app');
   var SB = 'https://iydtrglylllkljayumxl.supabase.co/rest/v1/rpc/', KEY = 'sb_publishable_MlqyFLfElmhIUCACI4X3Xg_ALEzPXfb';
   var TK = 'castle-gugudan-token';
-  var ROUNDS = 10, START_SEC = 15, MIN_SEC = 5, FAST_SEC = 5, PAUSE = 900;   // 처음 15초, 연속 정답마다 1초씩 줄어 최소 5초 (빠른 보너스는 5초 기준)
+  var ROUNDS = 30, START_SEC = 15, MIN_SEC = 3, FAST_SEC = 5, PAUSE = 900;   // 한 판 30문제, 처음 15초에서 연속 정답마다 1초씩 줄어 최소 3초 (빠른 보너스는 5초 기준)
   var MSG = { bad_login: '아이디 또는 비밀번호가 맞지 않습니다.', pw_format: '비밀번호는 숫자 4자리로 정해 주세요.', pw_zero: '0000은 쓸 수 없습니다. 다른 숫자로 정해 주세요.',
     id_format: '아이디는 한글·영문·숫자로 2~12자예요.', taken: '이미 있는 아이디예요. 다른 아이디를 써 주세요.', too_many: '잠시 뒤에 다시 해 주세요.' };
   var picked = [], G = null, ME = null, TOKEN = '', GUEST = false;
@@ -347,9 +347,9 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   function result() {
     Promise.all(G.pend).then(function () {
       if (G.lostLogin) { lost(); return; }
-      var st = G.right >= 10 ? 3 : G.right >= 8 ? 2 : G.right >= 5 ? 1 : 0, s = '';
+      var rate = G.right / ROUNDS, st = rate >= 0.9 ? 3 : rate >= 0.7 ? 2 : rate >= 0.5 ? 1 : 0, s = '';
       for (var i = 0; i < 3; i++) s += '<span class="' + (i < st ? '' : 'off') + '">⭐</span>';
-      var msg = G.right === ROUNDS ? '완벽해요! 구구단 박사!' : G.right >= 8 ? '대단해요! 거의 다 맞혔어요.' : G.right >= 5 ? '잘했어요! 조금만 더 연습해요.' : '괜찮아요. 다시 도전해 봐요!';
+      var msg = G.right === ROUNDS ? '완벽해요! 구구단 박사!' : rate >= 0.7 ? '대단해요! 거의 다 맞혔어요.' : rate >= 0.5 ? '잘했어요! 조금만 더 연습해요.' : '괜찮아요. 다시 도전해 봐요!';
       $app.innerHTML = head(true) +
         '<div class="card"><div class="stars">' + s + '</div><div class="sub" style="text-align:center;margin-bottom:10px">' + msg + '</div>' +
         '<div class="big' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></div><div class="sub" style="text-align:center;margin-top:2px">이번 판 점수</div>' +
