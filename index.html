@@ -111,6 +111,14 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .ovl .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .ovl .two button{height:50px;font-size:16px;border-radius:12px}
 .ovl .two button.red{background:linear-gradient(180deg,#EB323A 0%,#BD1820 100%);border-color:transparent;color:#fff}
+.modes{display:grid;gap:10px;margin-bottom:12px}
+.mode{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:18px 16px;border-radius:16px;background:linear-gradient(180deg,#1D1F26,#15171C);border:1px solid rgba(255,255,255,.1);box-shadow:0 1px 0 rgba(255,255,255,.05) inset,0 10px 24px rgba(0,0,0,.4)}
+.mode .ic{font-size:30px;width:44px;text-align:center;flex:none}
+.mode b{display:block;font-size:18px;letter-spacing:-.03em}
+.mode span{display:block;font-size:13px;color:var(--sub);font-weight:600;margin-top:2px}
+.rule{color:#B3B4BC;font-size:14px;line-height:1.7;margin-top:6px}
+.myrec{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding:12px 14px;background:#0F1014;border-radius:10px;font-weight:700}
+.myrec b{color:var(--gold);font-size:20px;font-variant-numeric:tabular-nums}
 @media (max-width:360px){.q .eq{font-size:52px}.opts button{height:76px;font-size:30px}}
 </style>
 </head>
@@ -125,6 +133,8 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   var MSG = { bad_login: '아이디 또는 비밀번호가 맞지 않습니다.', pw_format: '비밀번호는 숫자 4자리로 정해 주세요.', pw_zero: '0000은 쓸 수 없습니다. 다른 숫자로 정해 주세요.',
     id_format: '아이디는 한글·영문·숫자로 2~12자예요.', taken: '이미 있는 아이디예요. 다른 아이디를 써 주세요.', too_many: '잠시 뒤에 다시 해 주세요.' };
   var picked = [], G = null, ME = null, TOKEN = '', GUEST = false;
+  var MODE = 'dan', BIGLV = 1, TA_N = 20, PEN = 3;   // dan: 구구단 점수 / ta: 타임어택(20문제 모두 정답, 틀리면 +3초) / big: 큰 수 곱셈
+  var MULT = { dan: 1, big1: 1.5, big2: 2.5 }, BIG = { big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 } };
 
   function store(v) { try { if (v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); } catch (e) {} }
   function stored() { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } }
@@ -165,7 +175,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     var go = document.getElementById('go');
     document.getElementById('tin').onclick = function () { login('', 'in'); };
     document.getElementById('tup').onclick = function () { login('', 'up'); };
-    document.getElementById('guest').onclick = function () { GUEST = true; ME = { name: '탐험가', points: 0, best: 0 }; draw(null); };
+    document.getElementById('guest').onclick = function () { GUEST = true; ME = { name: '탐험가', points: 0, best: 0 }; menu(); };
     function submit() {
       var id = document.getElementById('uid').value.trim(), pw = document.getElementById('upw').value, er = document.getElementById('er');
       if (!id || !pw) { er.textContent = '아이디와 비밀번호를 입력해 주세요.'; return; }
@@ -206,13 +216,62 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
 
   // ---------- 시작 화면 ----------
-  function home() {
-    if (GUEST) { draw(null); return; }
-    Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
-      ME = r[0];
+  function home() {                       // 게임 고르기
+    if (GUEST) { menu(); return; }
+    rpc('gugu_me', { tok: TOKEN }).then(function (r) {
+      ME = r;
       if (ME.mustChange) { changePw(); return; }
-      draw(r[1]);
+      menu();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
+  }
+  function menu() {
+    $app.innerHTML = head(true) +
+      '<div class="hero"><div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1><div class="tip">하고 싶은 게임을 골라요.</div></div>' +
+      (GUEST ? '<div class="card"><h2>로그인 없이 하는 중이에요</h2><div class="sub">점수와 기록은 저장되지 않아요. 가입하면 차곡차곡 쌓여요.</div><button class="cta ghost" id="reg" style="margin-top:12px;height:48px;font-size:15.5px">가입하고 점수 모으기</button></div>'
+        : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
+      '<div class="modes">' +
+      '<button class="mode" data-m="dan"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>30문제 · 점수가 쌓여요</span></div></button>' +
+      '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
+      '<button class="mode" data-m="big"><span class="ic">🔢</span><div><b>큰 수 곱셈</b><span>두 자리 × 한 자리, 두 자리 × 두 자리</span></div></button></div>';
+    var bs = $app.querySelectorAll('.mode');
+    for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { setup(this.getAttribute('data-m')); };
+    document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
+    if (document.getElementById('reg')) document.getElementById('reg').onclick = function () { login('', 'up'); };
+  }
+  function setup(m) {
+    MODE = m;
+    if (m === 'big') { drawBig(); return; }
+    if (GUEST) { m === 'ta' ? drawTA(null) : draw(null); return; }
+    rpc(m === 'ta' ? 'gugu_ta_board' : 'gugu_board', { tok: TOKEN }).catch(function (e) { if (e.login) throw e; return null; })
+      .then(function (b) { m === 'ta' ? drawTA(b) : draw(b); }, function () { lost(); });
+  }
+  function secs(ms) { return (ms / 1000).toFixed(2) + '초'; }
+  function drawTA(b) {
+    var top = (b && b.top) || [], rows = '';
+    top.forEach(function (t, i) {
+      rows += '<div class="r' + (t.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(t.name) + '</span><span class="pt">' + secs(t.ms) + '</span></div>';
+    });
+    if (b && b.rank && b.rank > top.length) rows += '<div class="r me"><span class="no">' + b.rank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + secs(b.mine) + '</span></div>';
+    $app.innerHTML = head(true) +
+      '<div class="card"><h2>⏱️ 타임어택</h2><div class="rule">2~9단 전체에서 문제가 나와요.<br>' + TA_N + '문제를 모두 맞히면 끝!<br>틀리면 ' + PEN + '초가 더해져요. 기록이 짧을수록 순위가 높아요.</div>' +
+      (b && b.mine ? '<div class="myrec"><span>내 최고 기록</span><b>' + secs(b.mine) + '</b></div>' : '') + '</div>' +
+      (rows ? '<div class="card"><h2>순위</h2><div class="board">' + rows + '</div></div>' : '') +
+      (GUEST ? '<div class="warn" style="color:var(--gold);margin:0 0 12px">로그인 없이 하면 기록이 저장되지 않아요.</div>' : '') +
+      '<button class="cta" id="go">▶ 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
+    document.getElementById('go').onclick = start;
+    document.getElementById('bk').onclick = home;
+    document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
+  }
+  function drawBig() {
+    $app.innerHTML = head(true) +
+      '<div class="card"><h2>🔢 큰 수 곱셈</h2><div class="seg" style="margin-top:12px"><button data-l="1" class="' + (BIGLV === 1 ? 'on' : '') + '">두 자리 × 한 자리</button><button data-l="2" class="' + (BIGLV === 2 ? 'on' : '') + '">두 자리 × 두 자리</button></div>' +
+      '<div class="rule">10문제, 문제마다 ' + BIG['big' + BIGLV].sec + '초예요.<br>구구단보다 점수를 ' + (BIGLV === 1 ? '1.5' : '2.5') + '배로 받아요.</div></div>' +
+      '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
+    var bs = $app.querySelectorAll('.seg button');
+    for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { BIGLV = +this.getAttribute('data-l'); drawBig(); };
+    document.getElementById('go').onclick = start;
+    document.getElementById('bk').onclick = home;
+    document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
   function draw(board) {
     var all = picked.length === 0, chips = '', rows = '', top = (board && board.top) || [], myRank = board && board.rank;
@@ -222,12 +281,10 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     });
     if (myRank && myRank > top.length) rows += '<div class="r me"><span class="no">' + myRank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + fmt(ME.points) + '점</span></div>';
     $app.innerHTML = head(true) +
-      '<div class="hero"><div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1></div>' +
-      (GUEST ? '<div class="card"><h2>로그인 없이 하는 중이에요</h2><div class="sub">점수는 저장되지 않아요. 가입하면 점수가 차곡차곡 쌓여요.</div><button class="cta ghost" id="reg" style="margin-top:12px;height:48px;font-size:15.5px">가입하고 점수 모으기</button></div>'
-        : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
-      '<div class="card"><h2>연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
+      (GUEST ? '' : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
+      '<div class="card"><h2>🎯 구구단 점수 도전</h2><div class="sub" style="margin-bottom:8px">30문제 · 연습할 단을 골라요.</div><h2 style="font-size:14px;color:var(--sub);margin-top:10px">연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
       (rows ? '<div class="card"><h2>점수판</h2><div class="board">' + rows + '</div></div>' : '') +
-      '<button class="cta" id="go">▶ 게임 시작</button>';
+      '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
     var bs = $app.querySelectorAll('.dans button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () {
       var v = this.getAttribute('data-d');
@@ -236,8 +293,8 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
       draw(board);
     };
     document.getElementById('go').onclick = start;
+    document.getElementById('bk').onclick = home;
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
-    if (document.getElementById('reg')) document.getElementById('reg').onclick = function () { login('', 'up'); };
   }
 
   // ---------- 문제 만들기 ----------
@@ -255,8 +312,19 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     }
     return out;
   }
+  function bigDeck(n, lv) {                   // 두 자리 × 한 자리 / 두 자리 × 두 자리 (10의 배수는 빼요)
+    var out = [], last = null;
+    function two() { var v; do { v = rnd(11, 99); } while (v % 10 === 0); return v; }
+    while (out.length < n) {
+      var a = two(), b = lv === 1 ? rnd(2, 9) : two();
+      if (last && last[0] === a && last[1] === b) continue;
+      last = [a, b]; out.push(last);
+    }
+    return out;
+  }
   function choices(a, b) {                   // 정답 1개 + 헷갈리기 쉬운 오답 3개
     var ans = a * b, c = {}, cand = [a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, ans + 10, ans - 10, ans + 2, ans - 2, ans + 1, ans - 1];
+    if (ans >= 100) cand.push(ans + 20, ans - 20, ans + 100, ans - 100);
     shuffle(cand);
     var wrong = [];
     for (var i = 0; i < cand.length && wrong.length < 3; i++) {
@@ -269,20 +337,28 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   // ---------- 게임 ----------
   function start() {
     var go = document.getElementById('go'); if (go) go.disabled = true;
-    function begin() { G = { qs: deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, nt: 0, lock: false, paused: false, pend: [], fail: false }; show(); }
+    function begin() {
+      if (MODE === 'ta') {
+        G = { mode: 'ta', n: TA_N, i: 0, right: 0, wrong: 0, last: null, t0: performance.now(), raf: 0, nt: 0, lock: false, over: false };
+        showTA(); swTick(); return;
+      }
+      var mk = MODE === 'big' ? 'big' + BIGLV : 'dan', n = MODE === 'big' ? 10 : ROUNDS;
+      G = { mode: mk, mult: MULT[mk], n: n, qs: MODE === 'big' ? bigDeck(n, BIGLV) : deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, nt: 0, lock: false, paused: false, pend: [], fail: false };
+      show();
+    }
     if (GUEST) { begin(); return; }
-    rpc('gugu_start', { tok: TOKEN }).then(begin).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
+    rpc(MODE === 'ta' ? 'gugu_ta_start' : 'gugu_start', { tok: TOKEN }).then(begin).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
   }
   function show() {
     var q = G.qs[G.i], a = q[0], b = q[1], opts = choices(a, b);
-    G.ans = a * b; G.lock = false; G.limit = Math.max(MIN_SEC, START_SEC - G.combo);
+    G.ans = a * b; G.lock = false; G.limit = G.mode === 'dan' ? Math.max(MIN_SEC, START_SEC - G.combo) : BIG[G.mode].sec;
     var btn = '';
     opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
     $app.innerHTML = head(false, true) +
-      '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + ROUNDS + '</span><span class="tl" id="tl">' + G.limit + '초</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
+      '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + G.n + '</span><span class="tl" id="tl">' + G.limit + '초</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
       '<div class="tbar" id="tb"><i id="tf"></i></div>' +
       '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
-      '<div class="combo">' + (G.combo >= 1 ? '🔥 ' + G.combo + '연속 정답!' + (G.limit > MIN_SEC ? ' · 제한 시간 ' + G.limit + '초' : ' · 제한 시간 최소 ' + MIN_SEC + '초') : '') + '</div>' +
+      '<div class="combo">' + (G.combo >= 1 ? '🔥 ' + G.combo + '연속 정답!' + (G.mode !== 'dan' ? '' : G.limit > MIN_SEC ? ' · 제한 시간 ' + G.limit + '초' : ' · 제한 시간 최소 ' + MIN_SEC + '초') : '') + '</div>' +
       '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
     var bs = document.querySelectorAll('#op button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { answer(this); };
@@ -309,7 +385,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
       Promise.all(g.pend).then(function () { home(); }, function () { home(); });
     };
   }
-  function next() { G.i++; if (G.i >= ROUNDS) result(); else show(); }
+  function next() { G.i++; if (G.i >= G.n) result(); else show(); }
   function tick() {
     var left = G.limit - (performance.now() - G.t0) / 1000;
     var f = document.getElementById('tf');
@@ -323,31 +399,109 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   function answer(el) {
     if (G.lock || G.paused) return;
     G.lock = true; cancelAnimationFrame(G.raf);
-    var left = Math.round(Math.max(0, FAST_SEC - (performance.now() - G.t0) / 1000) * 10) / 10;   // 5초 안에 누른 만큼만 보너스
+    var win = G.mode === 'dan' ? FAST_SEC : BIG[G.mode].win;
+    var left = Math.round(Math.max(0, 5 * (1 - (performance.now() - G.t0) / 1000 / win)) * 10) / 10;   // 빠르게 누른 만큼만 보너스 (0~5)
     var ok = !!el && +el.getAttribute('data-v') === G.ans, kind = ok ? 'ok' : el ? 'wrong' : 'timeout', d, fb = document.getElementById('fb');
     var op = document.getElementById('op'), bs = op.querySelectorAll('button');
     op.className = 'opts lock';
     for (var i = 0; i < bs.length; i++) if (+bs[i].getAttribute('data-v') === G.ans) bs[i].className = 'good';
     if (ok) {
       G.right++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
-      d = 100 + Math.round(left * 20) + (G.combo >= 3 ? 20 : 0);
+      d = Math.round((100 + Math.round(left * 20) + (G.combo >= 3 ? 20 : 0)) * G.mult);
       fb.className = 'fb ok'; fb.textContent = '정답! +' + d;
     } else {
-      G.combo = 0; d = el ? -50 : -30; if (el) el.className = 'wrong';
+      G.combo = 0; d = -Math.round((el ? 50 : 30) * G.mult); if (el) el.className = 'wrong';
       fb.className = 'fb bad'; fb.textContent = (el ? '아쉬워요! ' : '시간 초과! ') + d + '점 · 정답은 ' + G.ans;
       if (navigator.vibrate) try { navigator.vibrate(70); } catch (e) {}
     }
     G.score += d;
     var g = G;
-    if (!GUEST) g.pend.push(rpc('gugu_answer', { tok: TOKEN, kind: kind, secs_left: left }).then(function (r) { ME.points = r.points; ME.best = r.best; }).catch(function (e) { if (e.login) g.lostLogin = true; g.fail = true; }));
+    if (!GUEST) g.pend.push(rpc('gugu_answer', { tok: TOKEN, kind: kind, secs_left: left, p_mode: g.mode }).then(function (r) { ME.points = r.points; ME.best = r.best; }).catch(function (e) { if (e.login) g.lostLogin = true; g.fail = true; }));
     G.nt = setTimeout(next, PAUSE);
+  }
+
+  // ---------- 타임어택 ----------
+  function swTick() {
+    var g = G; if (!g || g.over || g.mode !== 'ta') return;
+    var el = document.getElementById('sw'), t = ((performance.now() - g.t0) / 1000 + g.wrong * PEN).toFixed(1);
+    if (el && el.getAttribute('data-t') !== t) { el.setAttribute('data-t', t); el.innerHTML = t + '<small>초</small>'; }
+    g.raf = requestAnimationFrame(swTick);
+  }
+  function showTA() {
+    var a, b;
+    do { a = rnd(2, 9); b = rnd(2, 9); } while (G.last && G.last[0] === a && G.last[1] === b);
+    G.last = [a, b]; G.ans = a * b; G.lock = false;
+    var opts = choices(a, b), btn = '';
+    opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
+    $app.innerHTML = head(false, true) +
+      '<div class="hud"><span class="n">맞힌 <b>' + G.right + '</b> / ' + G.n + '</span><span class="sc" id="sw">0.0<small>초</small></span><span class="n">틀림 <b>' + G.wrong + '</b></span></div>' +
+      '<div class="tbar"><i style="transform:scaleX(' + (G.right / G.n) + ')"></i></div>' +
+      '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
+      '<div class="combo">틀리면 ' + PEN + '초가 더해져요</div>' +
+      '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
+    var bs = document.querySelectorAll('#op button');
+    for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { answerTA(this); };
+    document.getElementById('ex').onclick = askExitTA;
+  }
+  function answerTA(el) {
+    if (!G || G.lock || G.over) return;
+    var g = G; g.lock = true;
+    var ok = +el.getAttribute('data-v') === g.ans, fb = document.getElementById('fb'), op = document.getElementById('op'), bs = op.querySelectorAll('button');
+    op.className = 'opts lock';
+    for (var i = 0; i < bs.length; i++) if (+bs[i].getAttribute('data-v') === g.ans) bs[i].className = 'good';
+    if (ok) {
+      g.right++;
+      if (g.right >= g.n) { finishTA(g); return; }
+      fb.className = 'fb ok'; fb.textContent = '정답!';
+      g.nt = setTimeout(function () { if (G === g) showTA(); }, 300);
+    } else {
+      g.wrong++; el.className = 'wrong';
+      fb.className = 'fb bad'; fb.textContent = '아쉬워요! +' + PEN + '초 · 정답은 ' + g.ans;
+      if (navigator.vibrate) try { navigator.vibrate(70); } catch (e) {}
+      g.nt = setTimeout(function () { if (G === g) showTA(); }, 800);
+    }
+  }
+  function askExitTA() {
+    if (!G || G.over) return;
+    var g = G, o = document.createElement('div'); o.className = 'ovl';
+    o.innerHTML = '<div class="box"><h2>기록 도전을 그만할까요?</h2><p>시간은 계속 흘러요. 나가면 이번 기록은 사라져요.</p>' +
+      '<div class="two"><button id="keep">계속하기</button><button id="bye" class="red">나가기</button></div></div>';
+    document.body.appendChild(o);
+    document.getElementById('keep').onclick = function () { document.body.removeChild(o); };
+    document.getElementById('bye').onclick = function () {
+      document.body.removeChild(o);
+      g.over = true; cancelAnimationFrame(g.raf); clearTimeout(g.nt); if (G === g) G = null; home();
+    };
+  }
+  function finishTA(g) {
+    g.over = true; cancelAnimationFrame(g.raf); clearTimeout(g.nt);
+    var mine = Math.round((performance.now() - g.t0) + g.wrong * PEN * 1000);
+    if (GUEST) { resultTA(g, { ms: mine }); return; }
+    rpc('gugu_ta_finish', { tok: TOKEN, wrongs: g.wrong }).then(function (r) { resultTA(g, r); })
+      .catch(function (e) { if (e.login) lost(); else resultTA(g, { ms: mine, fail: true }); });
+  }
+  function resultTA(g, r) {
+    var pen = g.wrong * PEN, bad = r.error || r.fail;
+    $app.innerHTML = head(true) +
+      '<div class="card"><div class="stars">⏱️</div><div class="sub" style="text-align:center;margin-bottom:10px">' + (g.wrong === 0 ? '하나도 안 틀렸어요! 대단해요!' : TA_N + '문제 완료!') + '</div>' +
+      '<div class="big">' + secs(r.ms) + '</div><div class="sub" style="text-align:center;margin-top:2px">이번 기록' + (pen ? ' (벌칙 ' + pen + '초 포함)' : '') + '</div>' +
+      '<div class="stat3"><div><b>' + g.wrong + '</b><span>틀린 문제</span></div><div><b>' + (r.rank ? r.rank + '위' : '-') + '</b><span>내 순위</span></div><div><b>' + (r.best ? secs(r.best) : '-') + '</b><span>내 최고 기록</span></div></div>' +
+      (r.isNew ? '<div class="newrec">🎉 내 최고 기록이에요!</div>' : '') +
+      (GUEST ? '<div class="warn" style="color:var(--gold)">로그인 없이 한 판이라 기록은 저장되지 않아요.</div>' : '') +
+      (r.error ? '<div class="warn">기록이 인정되지 않았어요. 다시 도전해 봐요.</div>' : '') +
+      (r.fail ? '<div class="warn">연결이 불안정해서 기록이 저장되지 않았을 수 있어요.</div>' : '') + '</div>' +
+      '<button class="cta" id="again">↻ 다시 도전</button><button class="cta ghost" id="rk">순위 보기</button><button class="cta ghost" id="back">게임 고르기</button>';
+    document.getElementById('again').onclick = start;
+    document.getElementById('rk').onclick = function () { setup('ta'); };
+    document.getElementById('back').onclick = home;
+    document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
 
   // ---------- 결과 ----------
   function result() {
     Promise.all(G.pend).then(function () {
       if (G.lostLogin) { lost(); return; }
-      var rate = G.right / ROUNDS, st = rate >= 0.9 ? 3 : rate >= 0.7 ? 2 : rate >= 0.5 ? 1 : 0, s = '';
+      var ROUNDS = G.n, rate = G.right / ROUNDS, st = rate >= 0.9 ? 3 : rate >= 0.7 ? 2 : rate >= 0.5 ? 1 : 0, s = '';
       for (var i = 0; i < 3; i++) s += '<span class="' + (i < st ? '' : 'off') + '">⭐</span>';
       var msg = G.right === ROUNDS ? '완벽해요! 구구단 박사!' : rate >= 0.7 ? '대단해요! 거의 다 맞혔어요.' : rate >= 0.5 ? '잘했어요! 조금만 더 연습해요.' : '괜찮아요. 다시 도전해 봐요!';
       $app.innerHTML = head(true) +
