@@ -10,6 +10,16 @@
 <meta name="apple-mobile-web-app-title" content="캐슬 구구단">
 <meta name="theme-color" content="#0B0C0F">
 <title>캐슬 구구단</title>
+<meta name="description" content="5초 안에 답을 눌러라! 구구단 게임 · 점수를 모아 보세요">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="캐슬 구구단">
+<meta property="og:title" content="캐슬 구구단">
+<meta property="og:description" content="5초 안에 답을 눌러라! 구구단 게임 · 점수를 모아 보세요">
+<meta property="og:url" content="https://gugu.kastlemath.com/">
+<meta property="og:image" content="https://gugu.kastlemath.com/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="logo_mark.png">
 <link rel="apple-touch-icon" href="logo_mark.png">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
@@ -154,7 +164,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
     var go = document.getElementById('go');
     document.getElementById('tin').onclick = function () { login('', 'in'); };
     document.getElementById('tup').onclick = function () { login('', 'up'); };
-    document.getElementById('guest').onclick = function () { GUEST = true; ME = { name: '손님', points: 0, best: 0 }; draw(null); };
+    document.getElementById('guest').onclick = function () { GUEST = true; ME = { name: '탐험가', points: 0, best: 0 }; draw(null); };
     function submit() {
       var id = document.getElementById('uid').value.trim(), pw = document.getElementById('upw').value, er = document.getElementById('er');
       if (!id || !pw) { er.textContent = '아이디와 비밀번호를 입력해 주세요.'; return; }
