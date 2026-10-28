@@ -75,6 +75,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .hud .n{color:var(--sub);font-size:15px}.hud .n b{color:var(--ink)}
 .hud .sc{font-size:22px;letter-spacing:-.03em;font-variant-numeric:tabular-nums}.hud .sc small{font-size:13px;color:var(--gold);margin-left:3px}
 .hud .sc.neg{color:var(--bad)}
+.hud .tl{font-size:17px;font-weight:800;color:var(--gold);font-variant-numeric:tabular-nums}
 .tbar{height:12px;background:rgba(255,255,255,.08);border-radius:12px;overflow:hidden;margin-bottom:14px}
 .tbar>i{display:block;height:100%;width:100%;border-radius:12px;background:linear-gradient(90deg,#CBAA6C,#E1262D);transform-origin:left}
 .tbar.low>i{background:var(--bad)}
@@ -120,7 +121,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   var $app = document.getElementById('app');
   var SB = 'https://iydtrglylllkljayumxl.supabase.co/rest/v1/rpc/', KEY = 'sb_publishable_MlqyFLfElmhIUCACI4X3Xg_ALEzPXfb';
   var TK = 'castle-gugudan-token';
-  var ROUNDS = 10, SEC = 5, PAUSE = 900;
+  var ROUNDS = 10, START_SEC = 15, MIN_SEC = 5, FAST_SEC = 5, PAUSE = 900;   // 처음 15초, 연속 정답마다 1초씩 줄어 최소 5초 (빠른 보너스는 5초 기준)
   var MSG = { bad_login: '아이디 또는 비밀번호가 맞지 않습니다.', pw_format: '비밀번호는 숫자 4자리로 정해 주세요.', pw_zero: '0000은 쓸 수 없습니다. 다른 숫자로 정해 주세요.',
     id_format: '아이디는 한글·영문·숫자로 2~12자예요.', taken: '이미 있는 아이디예요. 다른 아이디를 써 주세요.', too_many: '잠시 뒤에 다시 해 주세요.' };
   var picked = [], G = null, ME = null, TOKEN = '', GUEST = false;
@@ -274,14 +275,14 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
   function show() {
     var q = G.qs[G.i], a = q[0], b = q[1], opts = choices(a, b);
-    G.ans = a * b; G.lock = false;
+    G.ans = a * b; G.lock = false; G.limit = Math.max(MIN_SEC, START_SEC - G.combo);
     var btn = '';
     opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
     $app.innerHTML = head(false, true) +
-      '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + ROUNDS + '</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
+      '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + ROUNDS + '</span><span class="tl" id="tl">' + G.limit + '초</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
       '<div class="tbar" id="tb"><i id="tf"></i></div>' +
       '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
-      '<div class="combo">' + (G.combo >= 2 ? '🔥 ' + G.combo + '연속 정답!' : '') + '</div>' +
+      '<div class="combo">' + (G.combo >= 1 ? '🔥 ' + G.combo + '연속 정답!' + (G.limit > MIN_SEC ? ' · 제한 시간 ' + G.limit + '초' : ' · 제한 시간 최소 ' + MIN_SEC + '초') : '') + '</div>' +
       '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
     var bs = document.querySelectorAll('#op button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { answer(this); };
@@ -310,18 +311,19 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
   function next() { G.i++; if (G.i >= ROUNDS) result(); else show(); }
   function tick() {
-    var left = SEC - (performance.now() - G.t0) / 1000;
+    var left = G.limit - (performance.now() - G.t0) / 1000;
     var f = document.getElementById('tf');
     if (!f || G.lock || G.paused) return;
     if (left <= 0) { f.style.transform = 'scaleX(0)'; answer(null); return; }
-    f.style.transform = 'scaleX(' + (left / SEC) + ')';
+    f.style.transform = 'scaleX(' + (left / G.limit) + ')';
+    var tl = document.getElementById('tl'); if (tl) tl.textContent = Math.ceil(left) + '초';
     document.getElementById('tb').className = 'tbar' + (left <= 1.6 ? ' low' : '');
     G.raf = requestAnimationFrame(tick);
   }
   function answer(el) {
     if (G.lock || G.paused) return;
     G.lock = true; cancelAnimationFrame(G.raf);
-    var left = Math.round(Math.max(0, Math.min(SEC, SEC - (performance.now() - G.t0) / 1000)) * 10) / 10;
+    var left = Math.round(Math.max(0, FAST_SEC - (performance.now() - G.t0) / 1000) * 10) / 10;   // 5초 안에 누른 만큼만 보너스
     var ok = !!el && +el.getAttribute('data-v') === G.ans, kind = ok ? 'ok' : el ? 'wrong' : 'timeout', d, fb = document.getElementById('fb');
     var op = document.getElementById('op'), bs = op.querySelectorAll('button');
     op.className = 'opts lock';
