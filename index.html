@@ -670,7 +670,9 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
 
   // ---------- 시작 ----------
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}   // 브라우저가 로그인 정보를 함부로 지우지 않게 요청
   TOKEN = stored();
+  if (TOKEN) store(TOKEN);
   if (TOKEN) home(); else login('');
 })();
 </script>
