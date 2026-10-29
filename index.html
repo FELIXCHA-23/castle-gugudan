@@ -258,10 +258,10 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   // ---------- 시작 화면 ----------
   function home() {                       // 게임 고르기
     if (GUEST) { menu(null); return; }
-    Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
+    Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_ta_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
       ME = r[0];
       if (ME.mustChange) { changePw(); return; }
-      menu(r[1]);
+      menu(r[1], r[2]);
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
   function boardRows(board) {
@@ -272,15 +272,25 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     if (myRank && myRank > top.length) rows += '<div class="r me"><span class="no">' + myRank + '</span><span class="nm">' + esc(ME.name) + ' (나)<small>⏱ ' + (ME.ta ? secs(ME.ta) : '기록 없음') + '</small></span><span class="pt">' + fmt(ME.points) + '점</span></div>';
     return rows;
   }
-  function menu(board) {
+  function taCard(tb) {                  // 타임어택 순위 카드
+    var top = (tb && tb.top) || [], rows = '';
+    top.forEach(function (t, i) {
+      rows += '<div class="r' + (t.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(t.name) + '</span><span class="pt">' + secs(t.ms) + '</span></div>';
+    });
+    if (tb && tb.rank && tb.rank > top.length) rows += '<div class="r me"><span class="no">' + tb.rank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + secs(tb.mine) + '</span></div>';
+    return rows ? '<div class="card fr"><h2>⏱️ 타임어택 순위</h2><div class="sub">20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.</div><div class="board">' + rows + '</div></div>' : '';
+  }
+  function menu(board, tb) {
     $app.innerHTML = head(true) +
       '<div class="hero">' + (ME && ME.grp === 'team' ? '<img src="teamg_word.png" alt="Team G" style="height:30px;width:auto;display:block;margin-bottom:12px">' : '') + '<div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1><div class="tip">하고 싶은 게임을 골라요.</div></div>' +
       (GUEST ? '<div class="card"><h2>로그인 없이 하는 중이에요</h2><div class="sub">점수와 기록은 저장되지 않아요. 가입하면 차곡차곡 쌓여요.</div><button class="cta ghost" id="reg" style="margin-top:12px;height:48px;font-size:15.5px">가입하고 점수 모으기</button></div>'
         : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
+      (ME && ME.grp === 'team' ? taCard(tb) : '') +
       '<div class="modes">' +
       '<button class="mode" data-m="dan"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>30문제 · 점수가 쌓여요</span></div></button>' +
       '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
       '<button class="mode" data-m="big"><span class="ic">🔢</span><div><b>큰 수 곱셈</b><span>두 자리 × 한 자리, 두 자리 × 두 자리</span></div></button></div>' +
+      (ME && ME.grp === 'team' ? '' : taCard(tb)) +
       (boardRows(board) ? '<div class="card fr"><h2>점수판</h2><div class="sub">구구단 점수 도전과 큰 수 곱셈 점수를 합친 순위예요. 타임어택 최고 기록도 함께 보여요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
     tabs('game');
     var bs = $app.querySelectorAll('.mode');
