@@ -338,11 +338,26 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
         '<div class="hero"><div class="hi">내 정보</div><h1>' + esc(ME.name) + '</h1></div>' +
         '<div class="card"><div class="stat3"><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div><div><b>' + fmt(ME.best) + '</b><span>한 판 최고</span></div><div><b>' + (ME.ta ? secs(ME.ta) : '-') + '</b><span>타임어택 최고</span></div></div>' +
         '<div class="sub" style="text-align:center;margin-top:12px">지금까지 ' + fmt(ME.plays) + '판 했어요.</div></div>' +
+        (ME.log ? '<div class="card fr"><h2>플레이 기록</h2><div class="sub">임우리·임두리가 언제, 몇 문제를 풀었는지 보여요. (10분 이상 쉬면 새 기록)</div><div class="board" id="plog"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">비밀번호를 0000으로 되돌려요. 다음 로그인 때 새 비밀번호를 정해요.</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
       tabs('me');
       document.getElementById('lo').onclick = out;
       if (ME.admin) adminList();
+      if (ME.log) logList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
+  }
+  var MODENAME = { dan: '구구단 점수 도전', ta: '타임어택', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
+  function logList() {
+    rpc('gugu_log', { tok: TOKEN }).then(function (r) {
+      var box = document.getElementById('plog'); if (!box || !r.list) return;
+      if (!r.list.length) { box.innerHTML = '<div class="sub" style="padding:10px 0">아직 기록이 없어요.</div>'; return; }
+      var h = '', day = '';
+      r.list.forEach(function (x) {
+        if (x.day !== day) { day = x.day; h += '<div class="sub" style="padding:12px 0 4px;font-weight:700">' + esc(x.day.slice(5).replace('-', '월 ') + '일') + '</div>'; }
+        h += '<div class="r"><span class="nm">' + esc(x.name) + '<small>' + esc(x.from + (x.to !== x.from ? ' ~ ' + x.to : '')) + ' · ' + esc(MODENAME[x.mode] || x.mode) + '</small></span><span class="pt">' + fmt(x.ok + x.bad) + '문제<small style="display:block;text-align:right;color:var(--sub);font-weight:600;font-size:12px">정답 ' + fmt(x.ok) + '</small></span></div>';
+      });
+      box.innerHTML = h;
+    }).catch(function (e) { if (e.login) lost(); });
   }
   function adminList(note) {
     rpc('gugu_admin_list', { tok: TOKEN }).then(function (r) {
