@@ -109,6 +109,17 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .cd{position:fixed;inset:0;z-index:120;display:flex;align-items:center;justify-content:center;background:rgba(5,6,8,.9)}
 .cd b{font-size:min(46vw,220px);font-weight:900;line-height:1;color:var(--main);animation:cdp .9s ease-out both}
 .cd b.go{font-size:min(24vw,120px);color:var(--ink)}
+.cfx{position:fixed;left:0;right:0;top:64%;z-index:110;pointer-events:none;text-align:center;font-weight:900;letter-spacing:-.02em;color:var(--gold);text-shadow:0 2px 18px rgba(255,150,40,.75),0 0 2px rgba(0,0,0,.6);animation:cfx .85s ease-out forwards}
+.cfx b{display:block;font-size:48px;line-height:1.05;white-space:nowrap}
+.cfx small{display:block;font-size:17px;font-weight:800;margin-top:2px;opacity:.95}
+.cfx.t2 b{font-size:56px;color:#ffb347}.cfx.t3 b{font-size:64px;color:#ff7a45}.cfx.t3{text-shadow:0 2px 26px rgba(255,90,30,.9),0 0 2px rgba(0,0,0,.6)}
+.cfl{position:fixed;inset:0;z-index:105;pointer-events:none;box-shadow:inset 0 0 70px 14px rgba(255,140,40,.55);animation:cfl .7s ease-out forwards}
+.cfl.t3{box-shadow:inset 0 0 110px 26px rgba(255,80,30,.7)}
+.cfp{position:fixed;z-index:111;pointer-events:none;font-size:22px;animation:cfp .9s ease-out forwards}
+.q.hot{border-color:rgba(255,160,60,.55);box-shadow:0 0 18px rgba(255,140,40,.28)}.q.hot2{border-color:rgba(255,120,40,.8);box-shadow:0 0 26px rgba(255,100,30,.45)}
+@keyframes cfx{0%{transform:scale(.4);opacity:0}18%{transform:scale(1.18);opacity:1}35%{transform:scale(1)}80%{opacity:1}100%{transform:translateY(-36px) scale(1);opacity:0}}
+@keyframes cfl{0%{opacity:0}20%{opacity:1}100%{opacity:0}}
+@keyframes cfp{0%{transform:translate(0,0) scale(.5);opacity:1}100%{transform:translate(var(--dx),var(--dy)) scale(1.2);opacity:0}}
 @keyframes cdp{0%{transform:scale(1.7);opacity:0}25%{opacity:1}100%{transform:scale(.9);opacity:.85}}
 .ovl{position:fixed;inset:0;background:rgba(5,6,8,.72);display:flex;align-items:center;justify-content:center;padding:24px;z-index:100}
 .ovl .box{background:linear-gradient(180deg,#1D1F26,#15171C);border:1px solid rgba(255,255,255,.1);border-radius:18px;padding:22px 20px 18px;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.6)}
@@ -529,7 +540,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     $app.innerHTML = head(false, true) +
       '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + G.n + '</span><span class="tl" id="tl">' + G.limit + '초</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
       '<div class="tbar" id="tb"><i id="tf"></i></div>' +
-      '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
+      '<div class="card q' + (G.combo >= 10 ? ' hot hot2' : G.combo >= 3 ? ' hot' : '') + '"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
       '<div class="combo">' + (G.combo >= 1 ? '🔥 ' + G.combo + '연속 정답!' + (G.mode !== 'dan' ? '' : G.limit > MIN_SEC ? ' · 제한 시간 ' + G.limit + '초' : ' · 제한 시간 최소 ' + MIN_SEC + '초') : '') + '</div>' +
       '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
     var bs = document.querySelectorAll('#op button');
@@ -568,6 +579,25 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     document.getElementById('tb').className = 'tbar' + (left <= 1.6 ? ' low' : '');
     G.raf = requestAnimationFrame(tick);
   }
+  // 연속 정답 효과: 2연속부터 화면에 콤보 글자, 5연속·10연속부터 더 크게 + 가장자리 불빛 + 불꽃
+  function comboFx(n) {
+    if (n < 2) return;
+    var t = n >= 10 ? 3 : n >= 5 ? 2 : 1, b = document.body, els = [];
+    var x = document.createElement('div'); x.className = 'cfx t' + t;
+    x.innerHTML = '<b>' + n + ' COMBO!</b>' + (t === 3 ? '<small>🔥 멈출 수 없다! 🔥</small>' : t === 2 ? '<small>🔥 불타오른다!</small>' : '');
+    els.push(x);
+    if (t >= 2) { var f = document.createElement('div'); f.className = 'cfl t' + t; els.push(f); }
+    if (t >= 2) for (var i = 0; i < (t === 3 ? 10 : 6); i++) {
+      var p = document.createElement('div'), ang = Math.random() * Math.PI * 2, r = 70 + Math.random() * 90;
+      p.className = 'cfp'; p.textContent = ['🔥', '✨', '⭐'][i % 3];
+      p.style.left = (45 + Math.random() * 10) + '%'; p.style.top = '70%';
+      p.style.setProperty('--dx', Math.round(Math.cos(ang) * r) + 'px'); p.style.setProperty('--dy', Math.round(Math.sin(ang) * r) + 'px');
+      els.push(p);
+    }
+    els.forEach(function (e) { b.appendChild(e); });
+    setTimeout(function () { els.forEach(function (e) { if (e.parentNode) e.parentNode.removeChild(e); }); }, 950);
+    if (t >= 2 && navigator.vibrate) try { navigator.vibrate(t === 3 ? [25, 30, 25] : 25); } catch (e) {}
+  }
   function answer(el) {
     if (G.lock || G.paused) return;
     G.lock = true; cancelAnimationFrame(G.raf);
@@ -581,6 +611,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       G.right++; G.combo++; G.maxCombo = Math.max(G.maxCombo, G.combo);
       d = Math.round((100 + Math.round(left * 20) + (G.combo >= 3 ? 20 : 0)) * G.mult);
       fb.className = 'fb ok'; fb.textContent = '정답! +' + d;
+      comboFx(G.combo);
     } else {
       G.combo = 0; d = -Math.round((el ? 50 : 30) * G.mult); if (el) el.className = 'wrong';
       fb.className = 'fb bad'; fb.textContent = (el ? '아쉬워요! ' : '시간 초과! ') + d + '점 · 정답은 ' + G.ans;
