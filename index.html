@@ -373,17 +373,32 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
         '<div class="hero"><div class="hi">내 정보</div><h1>' + esc(ME.name) + '</h1></div>' +
         '<div class="card"><div class="stat3"><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div><div><b>' + fmt(ME.best) + '</b><span>한 판 최고</span></div><div><b>' + (ME.ta ? secs(ME.ta) : '-') + '</b><span>타임어택 최고</span></div></div>' +
         '<div class="sub" style="text-align:center;margin-top:12px">지금까지 ' + fmt(ME.plays) + '판 했어요.</div></div>' +
+        (ME.admin ? '<div class="card fr"><h2>지금 접속 중</h2><div class="sub">지금 앱을 켜 둔 사람이에요. 관리자에게만 보여요.</div><div class="board" id="onl"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.log ? '<div class="card fr"><h2>플레이 기록</h2><div class="sub">임우리·임두리가 언제, 몇 문제를 풀었는지 보여요. (10분 이상 쉬면 새 기록)</div><div class="board" id="plog"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr"><h2>팀그라운드 정리</h2><div class="sub">팀그라운드 구구단 멤버만의 기록이에요. 학생들에게는 보이지 않아요.</div><div class="board" id="team"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">비밀번호를 0000으로 되돌려요. 다음 로그인 때 새 비밀번호를 정해요.</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
       tabs('me');
       document.getElementById('lo').onclick = out;
+      if (ME.admin) { onlineList(); clearInterval(OT); OT = setInterval(onlineList, 15000); }
       if (ME.admin) adminList();
       if (ME.log) logList();
       if (ME.admin) teamList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
   var MODENAME = { dan: '구구단 점수 도전', ta: '타임어택', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
+  var OT = 0;
+  function onlineList() {                  // 관리자만: 지금 접속 중인 사람 (15초마다 새로고침)
+    var box = document.getElementById('onl');
+    if (!box) { clearInterval(OT); return; }
+    rpc('gugu_online', { tok: TOKEN }).then(function (r) {
+      box = document.getElementById('onl'); if (!box || !r.list) return;
+      var h = '<div class="sub" style="padding:2px 0 8px"><b style="color:var(--ink)">' + r.list.length + '명</b> 접속 중</div>';
+      r.list.forEach(function (x) {
+        h += '<div class="r' + (x.name === ME.name ? ' me' : '') + '"><span class="nm">' + esc(x.name) + (x.name === ME.name ? ' (나)' : '') + '<small>' + (x.grp === 'team' ? '팀그라운드' : x.grp === 'home' ? '임우리/임두리' : '일반') + '</small></span><span class="pt" style="font-size:13px;color:var(--sub)">' + (x.ago < 5 ? '방금' : x.ago + '초 전') + '</span></div>';
+      });
+      box.innerHTML = h;
+    }).catch(function (e) { if (e.login) lost(); });
+  }
   function teamList() {
     rpc('gugu_team', { tok: TOKEN }).then(function (r) {
       var box = document.getElementById('team'); if (!box || !r.list) return;
@@ -741,7 +756,11 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) {}   // 브라우저가 로그인 정보를 함부로 지우지 않게 요청
   TOKEN = stored();
   if (TOKEN) store(TOKEN);
-  if (TOKEN) home(); else login('');
+  // 접속 표시: 앱이 보이는 동안 30초마다 서버에 알려요 (관리자 화면의 '지금 접속 중'에 쓰임)
+  function ping() { if (TOKEN && !GUEST && document.visibilityState === 'visible') rpc('gugu_ping', { tok: TOKEN }).catch(function () {}); }
+  setInterval(ping, 30000);
+  document.addEventListener('visibilitychange', ping);
+  if (TOKEN) { ping(); home(); } else login('');
 })();
 </script>
 </body>
