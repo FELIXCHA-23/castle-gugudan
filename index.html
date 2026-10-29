@@ -240,9 +240,9 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   function boardRows(board) {
     var top = (board && board.top) || [], rows = '', myRank = board && board.rank;
     top.forEach(function (b, i) {
-      rows += '<div class="r' + (b.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(b.name) + '</span><span class="pt">' + fmt(b.points) + '점</span></div>';
+      rows += '<div class="r' + (b.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(b.name) + '<small>⏱ ' + (b.ta ? secs(b.ta) : '기록 없음') + '</small></span><span class="pt">' + fmt(b.points) + '점</span></div>';
     });
-    if (myRank && myRank > top.length) rows += '<div class="r me"><span class="no">' + myRank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + fmt(ME.points) + '점</span></div>';
+    if (myRank && myRank > top.length) rows += '<div class="r me"><span class="no">' + myRank + '</span><span class="nm">' + esc(ME.name) + ' (나)<small>⏱ ' + (ME.ta ? secs(ME.ta) : '기록 없음') + '</small></span><span class="pt">' + fmt(ME.points) + '점</span></div>';
     return rows;
   }
   function menu(board) {
@@ -254,7 +254,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
       '<button class="mode" data-m="dan"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>30문제 · 점수가 쌓여요</span></div></button>' +
       '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
       '<button class="mode" data-m="big"><span class="ic">🔢</span><div><b>큰 수 곱셈</b><span>두 자리 × 한 자리, 두 자리 × 두 자리</span></div></button></div>' +
-      (boardRows(board) ? '<div class="card"><h2>점수판</h2><div class="sub">구구단 점수 도전과 큰 수 곱셈 점수를 합친 순위예요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
+      (boardRows(board) ? '<div class="card fr"><h2>점수판</h2><div class="sub">구구단 점수 도전과 큰 수 곱셈 점수를 합친 순위예요. 타임어택 최고 기록도 함께 보여요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
     tabs('game');
     var bs = $app.querySelectorAll('.mode');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { setup(this.getAttribute('data-m')); };
