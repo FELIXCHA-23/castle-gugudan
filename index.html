@@ -37,6 +37,7 @@ button:active{transform:scale(.97)}
 button:disabled{opacity:.5;cursor:default}
 input{font:inherit;width:100%;padding:14px 15px;border:1px solid var(--line);border-radius:12px;background:#0F1014;color:var(--ink);outline:none;font-size:18px;-webkit-user-select:text;user-select:text;touch-action:auto}
 input:focus{border-color:var(--main);box-shadow:0 0 0 3px rgba(225,38,45,.18)}
+label.ck{display:flex;align-items:center;gap:10px;margin:16px 0 2px;font-size:15px;color:var(--ink);cursor:pointer}label.ck input{width:22px;height:22px;flex:none;padding:0;margin:0;accent-color:var(--gold)}
 label{display:block;font-size:13px;font-weight:700;color:var(--sub);margin:14px 0 6px}
 .err{color:var(--bad);min-height:22px;margin-top:10px;font-size:14px;font-weight:600}
 .top{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:10px;margin:-18px -16px 14px;padding:calc(12px + env(safe-area-inset-top,0px)) 16px 12px;background:rgba(11,12,15,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
@@ -209,6 +210,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       '<label for="uid">아이디' + (up ? ' (한글·영문·숫자 2~12자)' : '') + '</label><input id="uid" autocomplete="username" autocapitalize="off" spellcheck="false" maxlength="12">' +
       '<label for="upw">비밀번호 (숫자 4자리)</label><input id="upw" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="' + (up ? 'new-password' : 'current-password') + '">' +
       (up ? '<label for="upw2">비밀번호 한 번 더</label><input id="upw2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="new-password">' : '') +
+      (up ? '<label class="ck" for="uelem"><input id="uelem" type="checkbox">초등학생이에요</label>' : '') +
       '<div class="err" id="er">' + esc(note || '') + '</div></div>' +
       '<button class="cta" id="go">' + (up ? '가입하고 시작' : '로그인') + '</button>' +
       '<button class="cta ghost" id="guest">로그인 없이 바로 해보기</button>';
@@ -222,7 +224,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       if (up && !/^[0-9]{4}$/.test(pw)) { er.textContent = MSG.pw_format; return; }
       if (up && pw !== document.getElementById('upw2').value) { er.textContent = '비밀번호 두 개가 달라요.'; return; }
       go.disabled = true;
-      rpc(up ? 'gugu_register' : 'gugu_login', { p_id: id, p_pw: pw }).then(function (r) {
+      rpc(up ? 'gugu_register' : 'gugu_login', up ? { p_id: id, p_pw: pw, p_elem: document.getElementById('uelem').checked } : { p_id: id, p_pw: pw }).then(function (r) {
         if (r.error) { go.disabled = false; er.textContent = MSG[r.error] || '실패했습니다.'; return; }
         TOKEN = r.token; store(TOKEN); ME = { name: r.name, points: r.points, best: r.best };
         r.mustChange ? changePw() : home();
@@ -410,7 +412,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       var box = document.getElementById('alist'); if (!box || !r.list) return;
       var h = note || '';
       r.list.forEach(function (x) {
-        h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + '<small>' + fmt(x.points) + '점' + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
+        h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + (x.elem ? ' · 초등' : '') + '<small>' + fmt(x.points) + '점' + (x.grp === 'team' ? ' · 팀그라운드' : x.grp === 'home' ? ' · 임우리/임두리' : '') + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
       });
       box.innerHTML = h;
       var bs = box.querySelectorAll('[data-r]');
