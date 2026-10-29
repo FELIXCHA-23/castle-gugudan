@@ -376,7 +376,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
         (ME.admin ? '<div class="card fr"><h2>지금 접속 중</h2><div class="sub">지금 앱을 켜 둔 사람이에요. 관리자에게만 보여요.</div><div class="board" id="onl"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.log ? '<div class="card fr"><h2>플레이 기록</h2><div class="sub">임우리·임두리가 언제, 몇 문제를 풀었는지 보여요. (10분 이상 쉬면 새 기록)</div><div class="board" id="plog"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr"><h2>팀그라운드 정리</h2><div class="sub">팀그라운드 구구단 멤버만의 기록이에요. 학생들에게는 보이지 않아요.</div><div class="board" id="team"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
-        (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">비밀번호를 0000으로 되돌려요. 다음 로그인 때 새 비밀번호를 정해요.</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
+        (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">전체 멤버를 최근 접속 순으로 보여요. 비밀번호를 0000으로 되돌릴 수도 있어요. (접속 시각은 오늘부터 기록돼요)</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
       tabs('me');
       document.getElementById('lo').onclick = out;
       if (ME.admin) { onlineList(); clearInterval(OT); OT = setInterval(onlineList, 15000); }
@@ -422,12 +422,17 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       box.innerHTML = h;
     }).catch(function (e) { if (e.login) lost(); });
   }
+  function seenText(x) {                 // 최근 접속 시각 (옛 계정은 마지막으로 문제를 푼 시각, 없으면 기록 없음)
+    if (x.ago == null) return '접속 기록 없음';
+    var a = x.ago;
+    return '최근 접속 ' + (a < 60 ? '방금' : a < 3600 ? Math.floor(a / 60) + '분 전' : a < 86400 ? Math.floor(a / 3600) + '시간 전' : x.at) + (a >= 60 && a < 86400 ? ' (' + x.at.slice(6) + ')' : '');
+  }
   function adminList(note) {
     rpc('gugu_admin_list', { tok: TOKEN }).then(function (r) {
       var box = document.getElementById('alist'); if (!box || !r.list) return;
       var h = note || '';
       r.list.forEach(function (x) {
-        h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + (x.elem ? ' · 초등' : '') + '<small>' + fmt(x.points) + '점' + (x.grp === 'team' ? ' · 팀그라운드' : x.grp === 'home' ? ' · 임우리/임두리' : '') + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
+        h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + (x.elem ? ' · 초등' : '') + '<small>' + seenText(x) + '<br>' + fmt(x.points) + '점' + (x.grp === 'team' ? ' · 팀그라운드' : x.grp === 'home' ? ' · 임우리/임두리' : '') + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
       });
       box.innerHTML = h;
       var bs = box.querySelectorAll('[data-r]');
