@@ -170,7 +170,9 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   function lost() { store(''); TOKEN = ''; ME = null; login('다시 로그인해 주세요.'); }
 
   function head(withWho, exitBtn) {
-    return '<div class="top"><span class="brand"><img src="logo_mark.png" alt="캐슬"><b>캐슬 구구단</b></span>' +
+    var bn = ME && ME.grp === 'team' ? '팀그라운드 구구단' : '캐슬 구구단';
+    document.title = bn;
+    return '<div class="top"><span class="brand"><img src="logo_mark.png" alt="캐슬"><b>' + bn + '</b></span>' +
       (exitBtn ? '<span class="who"><button id="ex">나가기</button></span>' : '') +
       (withWho && ME ? '<span class="who">' + esc(ME.name) + '<button id="lo">' + (GUEST ? '로그인' : '로그아웃') + '</button></span>' : '') + '</div>';
   }
@@ -339,14 +341,27 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
         '<div class="card"><div class="stat3"><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div><div><b>' + fmt(ME.best) + '</b><span>한 판 최고</span></div><div><b>' + (ME.ta ? secs(ME.ta) : '-') + '</b><span>타임어택 최고</span></div></div>' +
         '<div class="sub" style="text-align:center;margin-top:12px">지금까지 ' + fmt(ME.plays) + '판 했어요.</div></div>' +
         (ME.log ? '<div class="card fr"><h2>플레이 기록</h2><div class="sub">임우리·임두리가 언제, 몇 문제를 풀었는지 보여요. (10분 이상 쉬면 새 기록)</div><div class="board" id="plog"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
+        (ME.admin ? '<div class="card fr"><h2>팀그라운드 정리</h2><div class="sub">팀그라운드 구구단 멤버만의 기록이에요. 학생들에게는 보이지 않아요.</div><div class="board" id="team"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">비밀번호를 0000으로 되돌려요. 다음 로그인 때 새 비밀번호를 정해요.</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
       tabs('me');
       document.getElementById('lo').onclick = out;
       if (ME.admin) adminList();
       if (ME.log) logList();
+      if (ME.admin) teamList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
   var MODENAME = { dan: '구구단 점수 도전', ta: '타임어택', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
+  function teamList() {
+    rpc('gugu_team', { tok: TOKEN }).then(function (r) {
+      var box = document.getElementById('team'); if (!box || !r.list) return;
+      var h = '';
+      r.list.forEach(function (x, i) {
+        var n = x.right + x.wrong, acc = n ? Math.round(x.right * 100 / n) + '%' : '-';
+        h += '<div class="r"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(x.name) + '<small>타임어택 ' + (x.ta ? secs(x.ta) : '-') + ' · 한 판 최고 ' + fmt(x.best) + ' · ' + fmt(x.plays) + '판 · 정답률 ' + acc + '</small></span><span class="pt">' + fmt(x.points) + '점</span></div>';
+      });
+      box.innerHTML = h;
+    }).catch(function (e) { if (e.login) lost(); });
+  }
   function logList() {
     rpc('gugu_log', { tok: TOKEN }).then(function (r) {
       var box = document.getElementById('plog'); if (!box || !r.list) return;
