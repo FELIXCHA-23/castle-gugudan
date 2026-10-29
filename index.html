@@ -584,7 +584,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     if (n < 2) return;
     var t = n >= 10 ? 3 : n >= 5 ? 2 : 1, b = document.body, els = [];
     var x = document.createElement('div'); x.className = 'cfx t' + t;
-    x.innerHTML = '<b>' + n + ' COMBO!</b>' + (t === 3 ? '<small>🔥 멈출 수 없다! 🔥</small>' : t === 2 ? '<small>🔥 불타오른다!</small>' : '');
+    x.innerHTML = '<b>' + n + ' COMBO!</b>' + (t === 3 ? '<small>🔥 최고예요! 🔥</small>' : t === 2 ? '<small>🔥 대단해요!</small>' : '');
     els.push(x);
     if (t >= 2) { var f = document.createElement('div'); f.className = 'cfl t' + t; els.push(f); }
     if (t >= 2) for (var i = 0; i < (t === 3 ? 10 : 6); i++) {
