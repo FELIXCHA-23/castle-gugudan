@@ -169,7 +169,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
   function lost() { store(''); TOKEN = ''; ME = null; login('다시 로그인해 주세요.'); }
 
-  var TGLOGO = '<svg viewBox="770 345 490 290" aria-label="Team G" style="width:42px;height:25px;display:block" fill="#F3F1EC"><path d="M833 350H1245L1227 380H815Z"/><path d="M813 392H957L921 450H777Z"/><path d="M955 436L1010 392H1222L1186 450H1032L960 567H1010L1044 549L1050 538H1018L1046 480H1148L1154 515L1102 596L1054 626H835Z"/></svg>';
+  var TGLOGO = '<img src="teamg_mark.png" alt="Team G" style="width:auto;height:24px">';
   function head(withWho, exitBtn) {
     var bn = ME && ME.grp === 'team' ? '팀그라운드 구구단' : '캐슬 구구단';
     document.title = bn;
@@ -255,7 +255,7 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
   function menu(board) {
     $app.innerHTML = head(true) +
-      '<div class="hero"><div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1><div class="tip">하고 싶은 게임을 골라요.</div></div>' +
+      '<div class="hero">' + (ME && ME.grp === 'team' ? '<img src="teamg_word.png" alt="Team G" style="height:30px;width:auto;display:block;margin-bottom:12px">' : '') + '<div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1><div class="tip">하고 싶은 게임을 골라요.</div></div>' +
       (GUEST ? '<div class="card"><h2>로그인 없이 하는 중이에요</h2><div class="sub">점수와 기록은 저장되지 않아요. 가입하면 차곡차곡 쌓여요.</div><button class="cta ghost" id="reg" style="margin-top:12px;height:48px;font-size:15.5px">가입하고 점수 모으기</button></div>'
         : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
       '<div class="modes">' +
