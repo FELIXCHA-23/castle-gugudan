@@ -169,10 +169,12 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   }
   function lost() { store(''); TOKEN = ''; ME = null; login('다시 로그인해 주세요.'); }
 
+  var TGLOGO = '<svg viewBox="770 345 490 290" aria-label="Team G" style="width:42px;height:25px;display:block" fill="#F3F1EC"><path d="M833 350H1245L1227 380H815Z"/><path d="M813 392H957L921 450H777Z"/><path d="M955 436L1010 392H1222L1186 450H1032L960 567H1010L1044 549L1050 538H1018L1046 480H1148L1154 515L1102 596L1054 626H835Z"/></svg>';
   function head(withWho, exitBtn) {
     var bn = ME && ME.grp === 'team' ? '팀그라운드 구구단' : '캐슬 구구단';
     document.title = bn;
-    return '<div class="top"><span class="brand"><img src="logo_mark.png" alt="캐슬"><b>' + bn + '</b></span>' +
+    var logo = ME && ME.grp === 'team' ? TGLOGO : '<img src="logo_mark.png" alt="캐슬">';
+    return '<div class="top"><span class="brand">' + logo + '<b>' + bn + '</b></span>' +
       (exitBtn ? '<span class="who"><button id="ex">나가기</button></span>' : '') +
       (withWho && ME ? '<span class="who">' + esc(ME.name) + '<button id="lo">' + (GUEST ? '로그인' : '로그아웃') + '</button></span>' : '') + '</div>';
   }
