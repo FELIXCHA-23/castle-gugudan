@@ -136,6 +136,9 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .rule{color:#B3B4BC;font-size:14px;line-height:1.7;margin-top:6px}
 .myrec{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding:12px 14px;background:#0F1014;border-radius:10px;font-weight:700}
 .myrec b{color:var(--gold);font-size:20px;font-variant-numeric:tabular-nums}
+body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
+@media (max-height:700px){.play .q{padding:18px 10px 14px}.play .q .eq{font-size:50px}.play .opts button{height:68px;font-size:28px}.play .fb{margin-top:8px}.play .tbar{margin-bottom:8px}}
+@media (max-height:560px){.play .q{padding:8px 10px 6px}.play .q .eq{font-size:40px}.play .opts button{height:54px;font-size:24px}.play .hud{margin-bottom:4px}}
 @media (max-width:360px){.q .eq{font-size:52px}.opts button{height:76px;font-size:30px}}
 </style>
 </head>
@@ -173,6 +176,8 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
   function head(withWho, exitBtn) {
     var bn = ME && ME.grp === 'team' ? '팀그라운드 구구단' : '캐슬 구구단';
     document.title = bn;
+    document.body.classList.toggle('play', !!exitBtn);   // 게임 중에는 화면 고정(스크롤 없음)
+    if (exitBtn) window.scrollTo(0, 0);
     var logo = ME && ME.grp === 'team' ? TGLOGO : '<img src="logo_mark.png" alt="캐슬">';
     return '<div class="top"><span class="brand">' + logo + '<b>' + bn + '</b></span>' +
       (exitBtn ? '<span class="who"><button id="ex">나가기</button></span>' : '') +
