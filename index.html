@@ -85,6 +85,8 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .tbar.low>i{background:var(--bad)}
 .q{text-align:center;padding:30px 10px 26px}
 .q .eq{font-size:62px;font-weight:800;letter-spacing:-.04em;line-height:1.1;font-variant-numeric:tabular-nums}
+.q .seqq{display:flex;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:2px 6px;padding:0 6px;font-size:40px;font-weight:800;letter-spacing:-.03em;line-height:1.25;font-variant-numeric:tabular-nums}
+.q .seqq i{font-style:normal;color:var(--gold);margin-right:4px}.q .seqq em{font-style:normal;color:var(--sub)}
 .q .eq span{color:var(--gold);margin:0 .12em}
 .q .eq em{font-style:normal;color:var(--sub)}
 .combo{height:24px;text-align:center;color:var(--gold);font-weight:700;font-size:15px;margin:-4px 0 8px}
@@ -151,8 +153,8 @@ h2{font-size:17px;margin:0 0 4px;letter-spacing:-.02em}
 .myrec{display:flex;justify-content:space-between;align-items:baseline;margin-top:12px;padding:12px 14px;background:#0F1014;border-radius:10px;font-weight:700}
 .myrec b{color:var(--gold);font-size:20px;font-variant-numeric:tabular-nums}
 body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:none}
-@media (max-height:700px){.play .q{padding:18px 10px 14px}.play .q .eq{font-size:50px}.play .opts button{height:68px;font-size:28px}.play .fb{margin-top:8px}.play .tbar{margin-bottom:8px}}
-@media (max-height:560px){.play .q{padding:8px 10px 6px}.play .q .eq{font-size:40px}.play .opts button{height:54px;font-size:24px}.play .hud{margin-bottom:4px}}
+@media (max-height:700px){.play .q .seqq{font-size:34px}.play .q{padding:18px 10px 14px}.play .q .eq{font-size:50px}.play .opts button{height:68px;font-size:28px}.play .fb{margin-top:8px}.play .tbar{margin-bottom:8px}}
+@media (max-height:560px){.play .q .seqq{font-size:28px}.play .q{padding:8px 10px 6px}.play .q .eq{font-size:40px}.play .opts button{height:54px;font-size:24px}.play .hud{margin-bottom:4px}}
 @media (max-width:360px){.q .eq{font-size:52px}.opts button{height:76px;font-size:30px}}
 </style>
 </head>
@@ -169,7 +171,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   // 확대·축소 금지 (iOS는 viewport 설정을 무시하므로 제스처도 막아요)
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }); });
   var picked = [], G = null, ME = null, TOKEN = '', GUEST = false;
-  var MODE = 'dan', BIGLV = 1, TA_N = 20, PEN = 3;   // dan: 구구단 점수 / ta: 타임어택(20문제 모두 정답, 틀리면 +3초) / big: 큰 수 곱셈
+  var MODE = 'dan', BIGLV = 1, TA_N = 20, SQ_N = 10, PEN = 3;   // dan: 구구단 점수 / ta: 타임어택(20문제 모두 정답, 틀리면 +3초) / big: 큰 수 곱셈
   var MULT = { dan: 1, big1: 1.5, big2: 2.5 }, BIG = { big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 } };
 
   function store(v) { try { if (v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); } catch (e) {} }
@@ -261,10 +263,10 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   // ---------- 시작 화면 ----------
   function home() {                       // 게임 고르기
     if (GUEST) { menu(null); return; }
-    Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_ta_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
+    Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_ta_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_sq_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
       ME = r[0];
       if (ME.mustChange) { changePw(); return; }
-      menu(r[1], r[2]);
+      menu(r[1], r[2], r[3]);
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
   function boardRows(board) {
@@ -275,25 +277,28 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     if (myRank && myRank > top.length) rows += '<div class="r me"><span class="no">' + myRank + '</span><span class="nm">' + esc(ME.name) + ' (나)<small>⏱ ' + (ME.ta ? secs(ME.ta) : '기록 없음') + '</small></span><span class="pt">' + fmt(ME.points) + '점</span></div>';
     return rows;
   }
-  function taCard(tb) {                  // 타임어택 순위 카드
+  function taCard(tb, title, sub) {      // 타임어택 순위 카드 (구구단 / 수열)
     var top = (tb && tb.top) || [], rows = '';
     top.forEach(function (t, i) {
       rows += '<div class="r' + (t.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(t.name) + '</span><span class="pt">' + secs(t.ms) + '</span></div>';
     });
     if (tb && tb.rank && tb.rank > top.length) rows += '<div class="r me"><span class="no">' + tb.rank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + secs(tb.mine) + '</span></div>';
-    return rows ? '<div class="card fr"><h2>⏱️ 타임어택 순위</h2><div class="sub">20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.</div><div class="board">' + rows + '</div></div>' : '';
+    return rows ? '<div class="card fr"><h2>' + title + '</h2><div class="sub">' + sub + '</div><div class="board">' + rows + '</div></div>' : '';
   }
-  function menu(board, tb) {
+  function TACARDS(tb, sb) {
+    return taCard(tb, '⏱️ 구구단 타임어택 순위', '20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.') + taCard(sb, '📈 수열 타임어택 순위', '수열 10문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.');
+  }
+  function menu(board, tb, sb) {
     $app.innerHTML = head(true) +
       '<div class="hero">' + (ME && ME.grp === 'team' ? '<img src="teamg_word.png" alt="Team G" style="height:30px;width:auto;display:block;margin-bottom:12px">' : '') + '<div class="hi">구구단 도전!</div><h1>' + esc(ME.name) + '님,<br>어서 와요!</h1><div class="tip">하고 싶은 게임을 골라요.</div></div>' +
       (GUEST ? '<div class="card"><h2>로그인 없이 하는 중이에요</h2><div class="sub">점수와 기록은 저장되지 않아요. 가입하면 차곡차곡 쌓여요.</div><button class="cta ghost" id="reg" style="margin-top:12px;height:48px;font-size:15.5px">가입하고 점수 모으기</button></div>'
         : '<div class="card"><div class="total"><div><div class="lb">내 누적 점수</div><div class="v">' + fmt(ME.points) + '<small>점</small></div></div><div class="bt">한 판 최고<b>' + fmt(ME.best) + '</b></div></div></div>') +
-      (ME && ME.grp === 'team' ? taCard(tb) : '') +
+      (ME && ME.grp === 'team' ? TACARDS(tb, sb) : '') +
       '<div class="modes">' +
-      '<button class="mode" data-m="dan"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>30문제 · 점수가 쌓여요</span></div></button>' +
-      '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
-      '<button class="mode" data-m="big"><span class="ic">🔢</span><div><b>큰 수 곱셈</b><span>두 자리 × 한 자리, 두 자리 × 두 자리</span></div></button></div>' +
-      (ME && ME.grp === 'team' ? '' : taCard(tb)) +
+      '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>구구단 타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
+      '<button class="mode" data-m="sq"><span class="ic">📈</span><div><b>수열 타임어택</b><span>다음에 올 수를 맞혀요 · 10문제 · 빠른 순서로 순위</span></div></button>' +
+      '<button class="mode" data-m="score"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>구구단 · 큰 수 곱셈 · 점수가 쌓여요</span></div></button></div>' +
+      (ME && ME.grp === 'team' ? '' : TACARDS(tb, sb)) +
       (boardRows(board) ? '<div class="card fr"><h2>점수판</h2><div class="sub">구구단 점수 도전과 큰 수 곱셈 점수를 합친 순위예요. 타임어택 최고 기록도 함께 보여요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
     tabs('game');
     var bs = $app.querySelectorAll('.mode');
@@ -302,11 +307,11 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     if (document.getElementById('reg')) document.getElementById('reg').onclick = function () { login('', 'up'); };
   }
   function setup(m) {
-    MODE = m;
+    MODE = m === 'score' ? 'dan' : m;
     if (m === 'big') { drawBig(); return; }
-    if (m === 'dan') { draw(null); return; }
+    if (m === 'dan' || m === 'score') { MODE = 'dan'; draw(null); return; }
     if (GUEST) { drawTA(null); return; }
-    rpc('gugu_ta_board', { tok: TOKEN }).catch(function (e) { if (e.login) throw e; return null; })
+    rpc(m === 'sq' ? 'gugu_sq_board' : 'gugu_ta_board', { tok: TOKEN }).catch(function (e) { if (e.login) throw e; return null; })
       .then(function (b) { drawTA(b); }, function () { lost(); });
   }
   var ICON = {
@@ -386,7 +391,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       if (ME.admin) teamList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
-  var MODENAME = { dan: '구구단 점수 도전', ta: '타임어택', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
+  var MODENAME = { dan: '구구단 점수 도전', ta: '구구단 타임어택', sq: '수열 타임어택', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
   var OT = 0;
   function onlineList() {                  // 관리자만: 지금 접속 중인 사람 (15초마다 새로고침)
     var box = document.getElementById('onl');
@@ -461,8 +466,9 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       rows += '<div class="r' + (t.name === ME.name ? ' me' : '') + '"><span class="no">' + (i + 1) + '</span><span class="nm">' + esc(t.name) + '</span><span class="pt">' + secs(t.ms) + '</span></div>';
     });
     if (b && b.rank && b.rank > top.length) rows += '<div class="r me"><span class="no">' + b.rank + '</span><span class="nm">' + esc(ME.name) + ' (나)</span><span class="pt">' + secs(b.mine) + '</span></div>';
+    var sq = MODE === 'sq';
     $app.innerHTML = head(true) +
-      '<div class="card"><h2>⏱️ 타임어택</h2><div class="rule">2~9단 전체에서 문제가 나와요.<br>' + TA_N + '문제를 모두 맞히면 끝!<br>틀리면 ' + PEN + '초가 더해져요. 기록이 짧을수록 순위가 높아요.</div>' +
+      '<div class="card"><h2>' + (sq ? '📈 수열 타임어택' : '⏱️ 구구단 타임어택') + '</h2><div class="rule">' + (sq ? '숫자가 늘어선 규칙을 찾아<br>다음에 올 수를 맞혀요.<br>' + SQ_N + '문제를 모두 맞히면 끝!' : '2~9단 전체에서 문제가 나와요.<br>' + TA_N + '문제를 모두 맞히면 끝!') + '<br>틀리면 ' + PEN + '초가 더해져요. 기록이 짧을수록 순위가 높아요.</div>' +
       (b && b.mine ? '<div class="myrec"><span>내 최고 기록</span><b>' + secs(b.mine) + '</b></div>' : '') + '</div>' +
       (rows ? '<div class="card"><h2>순위</h2><div class="board">' + rows + '</div></div>' : '') +
       (GUEST ? '<div class="warn" style="color:var(--gold);margin:0 0 12px">로그인 없이 하면 기록이 저장되지 않아요.</div>' : '') +
@@ -472,13 +478,21 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     document.getElementById('bk').onclick = home;
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
+  function scoreSeg(cur) {                 // 구구단 점수 도전 안에서 구구단 / 큰 수 곱셈 고르기
+    return '<div class="seg" id="ssg" style="margin:10px 0 12px"><button data-k="dan" class="' + (cur === 'dan' ? 'on' : '') + '">구구단 (한 자리)</button><button data-k="big" class="' + (cur === 'big' ? 'on' : '') + '">큰 수 곱셈</button></div>';
+  }
+  function bindScoreSeg() {
+    var bs = document.querySelectorAll('#ssg button');
+    for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { if (this.getAttribute('data-k') === 'big') { MODE = 'big'; drawBig(); } else { MODE = 'dan'; draw(null); } };
+  }
   function drawBig() {
     $app.innerHTML = head(true) +
-      '<div class="card"><h2>🔢 큰 수 곱셈</h2><div class="seg" style="margin-top:12px"><button data-l="1" class="' + (BIGLV === 1 ? 'on' : '') + '">두 자리 × 한 자리</button><button data-l="2" class="' + (BIGLV === 2 ? 'on' : '') + '">두 자리 × 두 자리</button></div>' +
+      '<div class="card"><h2>🎯 구구단 점수 도전</h2>' + scoreSeg('big') + '<div class="seg"><button data-l="1" class="' + (BIGLV === 1 ? 'on' : '') + '">두 자리 × 한 자리</button><button data-l="2" class="' + (BIGLV === 2 ? 'on' : '') + '">두 자리 × 두 자리</button></div>' +
       '<div class="rule">10문제, 문제마다 ' + BIG['big' + BIGLV].sec + '초예요.<br>구구단보다 점수를 ' + (BIGLV === 1 ? '1.5' : '2.5') + '배로 받아요.</div></div>' +
       '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
     tabs('game');
-    var bs = $app.querySelectorAll('.seg button');
+    bindScoreSeg();
+    var bs = $app.querySelectorAll('.seg:not(#ssg) button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { BIGLV = +this.getAttribute('data-l'); drawBig(); };
     document.getElementById('go').onclick = start;
     document.getElementById('bk').onclick = home;
@@ -488,9 +502,10 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     var all = picked.length === 0, chips = '';
     for (var d = 2; d <= 9; d++) chips += '<button data-d="' + d + '" class="' + (picked.indexOf(d) >= 0 ? 'on' : '') + '">' + d + '단</button>';
     $app.innerHTML = head(true) +
-      '<div class="card"><h2>🎯 구구단 점수 도전</h2><div class="sub" style="margin-bottom:8px">30문제 · 연습할 단을 골라요.</div><h2 style="font-size:14px;color:var(--sub);margin-top:10px">연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
+      '<div class="card"><h2>🎯 구구단 점수 도전</h2>' + scoreSeg('dan') + '<div class="sub" style="margin-bottom:8px">30문제 · 연습할 단을 골라요.</div><h2 style="font-size:14px;color:var(--sub);margin-top:10px">연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
       '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
     tabs('game');
+    bindScoreSeg();
     var bs = $app.querySelectorAll('.dans button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () {
       var v = this.getAttribute('data-d');
@@ -540,12 +555,44 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     return shuffle([ans].concat(wrong));
   }
 
+  // 수열 문제: 4개를 보여 주고 다음(5번째) 수를 맞혀요. 등차(공차 ±1~9) 50% · 등비(공비 2~9) 25% · 공비 1/2~1/9 25%
+  function seqQ() {
+    var t = [], kind, step, a, i, r = Math.random();
+    function startFor(base) { var c = []; for (var v = 1; v <= 5; v++) if (v * Math.pow(base, 4) <= 20000) c.push(v); return c[rnd(0, c.length - 1)]; }
+    if (r < 0.5) {
+      kind = 'add'; step = rnd(1, 9) * (Math.random() < 0.5 ? 1 : -1);
+      a = step > 0 ? rnd(1, 30) : rnd(4 * -step + 1, 4 * -step + 30);
+      for (i = 0; i < 5; i++) t.push(a + i * step);
+    } else if (r < 0.75) {
+      kind = 'mul'; step = rnd(2, 9); a = startFor(step);
+      for (i = 0; i < 5; i++) t.push(a * Math.pow(step, i));
+    } else {
+      kind = 'div'; step = rnd(2, 9); a = startFor(step);
+      for (i = 0; i < 5; i++) t.push(a * Math.pow(step, 4 - i));
+    }
+    return { kind: kind, step: step, shown: t.slice(0, 4), ans: t[4] };
+  }
+  function seqChoices(q) {
+    var ans = q.ans, last = q.shown[3], c = {}, cand = [ans + 1, ans - 1, ans + 2, ans - 2, last];
+    if (q.kind === 'add') cand.push(ans + q.step, last + q.step + 1, last + q.step - 1, ans + 10, ans - 10);
+    else if (q.kind === 'mul') cand.push(last * (q.step + 1), last * (q.step - 1), last + q.step, last + (last - q.shown[2]), ans * 2);
+    else cand.push(Math.round(last / (q.step + 1)), Math.round(last / (q.step - 1)), last - q.step, last - (q.shown[2] - last), Math.round(ans / 2));
+    shuffle(cand);
+    var wrong = [];
+    for (var i = 0; i < cand.length && wrong.length < 3; i++) {
+      var v = cand[i];
+      if (isFinite(v) && v === Math.floor(v) && v > 0 && v !== ans && !c[v]) { c[v] = 1; wrong.push(v); }
+    }
+    for (var k = 3; wrong.length < 3; k++) { var w = ans + k; if (!c[w]) { c[w] = 1; wrong.push(w); } }
+    return shuffle([ans].concat(wrong));
+  }
+
   // ---------- 게임 ----------
   function start() {
     var go = document.getElementById('go'); if (go) go.disabled = true;
     function begin() {
-      if (MODE === 'ta') {
-        G = { mode: 'ta', n: TA_N, i: 0, right: 0, wrong: 0, last: null, t0: performance.now(), raf: 0, nt: 0, lock: false, over: false };
+      if (MODE === 'ta' || MODE === 'sq') {
+        G = { mode: MODE, n: MODE === 'sq' ? SQ_N : TA_N, i: 0, right: 0, wrong: 0, last: null, t0: performance.now(), raf: 0, nt: 0, lock: false, over: false };
         showTA(); swTick(); return;
       }
       var mk = MODE === 'big' ? 'big' + BIGLV : 'dan', n = MODE === 'big' ? 10 : ROUNDS;
@@ -554,9 +601,9 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     }
     function run() {
       if (GUEST) { begin(); return; }
-      rpc(MODE === 'ta' ? 'gugu_ta_start' : 'gugu_start', { tok: TOKEN }).then(begin).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
+      rpc(MODE === 'sq' ? 'gugu_sq_start' : MODE === 'ta' ? 'gugu_ta_start' : 'gugu_start', { tok: TOKEN }).then(begin).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
     }
-    if (MODE === 'ta') countdown(run); else run();
+    if (MODE === 'ta' || MODE === 'sq') countdown(run); else run();
   }
   function countdown(done) {               // 3 · 2 · 1 · 시작! (화면 가운데)
     var o = document.createElement('div'), seq = ['3', '2', '1', '시작!'], i = 0;
@@ -661,22 +708,29 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
 
   // ---------- 타임어택 ----------
   function swTick() {
-    var g = G; if (!g || g.over || g.mode !== 'ta') return;
+    var g = G; if (!g || g.over || (g.mode !== 'ta' && g.mode !== 'sq')) return;
     var el = document.getElementById('sw'), t = ((performance.now() - g.t0) / 1000 + g.wrong * PEN).toFixed(1);
     if (el && el.getAttribute('data-t') !== t) { el.setAttribute('data-t', t); el.innerHTML = t + '<small>초</small>'; }
     g.raf = requestAnimationFrame(swTick);
   }
   function showTA() {
-    var a, b;
-    do { a = rnd(2, 9); b = rnd(2, 9); } while (G.last && G.last[0] === a && G.last[1] === b);
-    G.last = [a, b]; G.ans = a * b; G.lock = false;
-    var opts = choices(a, b), btn = '';
+    var a, b, opts, eq, sq = G.mode === 'sq', q;
+    if (sq) {
+      do { q = seqQ(); } while (G.last && G.last === q.shown.join(','));
+      G.last = q.shown.join(','); G.ans = q.ans; G.lock = false; opts = seqChoices(q);
+      eq = '<div class="seqq">' + q.shown.map(function (v) { return '<b>' + v + '</b>'; }).join('<i>,</i>') + '<i>,</i><em>?</em></div>';
+    } else {
+      do { a = rnd(2, 9); b = rnd(2, 9); } while (G.last && G.last[0] === a && G.last[1] === b);
+      G.last = [a, b]; G.ans = a * b; G.lock = false; opts = choices(a, b);
+      eq = '<div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div>';
+    }
+    var btn = '';
     opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
     $app.innerHTML = head(false, true, true) +
       '<div class="hud"><span class="n">맞힌 <b>' + G.right + '</b> / ' + G.n + '</span><span class="sc" id="sw">0.0<small>초</small></span><span class="n">틀림 <b>' + G.wrong + '</b></span></div>' +
       '<div class="tbar"><i style="transform:scaleX(' + (G.right / G.n) + ')"></i></div>' +
-      '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
-      '<div class="combo">틀리면 ' + PEN + '초가 더해져요</div>' +
+      '<div class="card q">' + eq + '</div>' +
+      '<div class="combo">' + (sq ? '규칙을 찾아 다음 수를 골라요 · ' : '') + '틀리면 ' + PEN + '초가 더해져요</div>' +
       '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
     var bs = document.querySelectorAll('#op button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { answerTA(this); };
@@ -712,7 +766,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       document.body.removeChild(o);
       if (G !== g || g.over) return;
       g.over = true; cancelAnimationFrame(g.raf); clearTimeout(g.nt); G = null;
-      MODE = 'ta'; start();
+      MODE = g.mode; start();
     };
   }
   function askExitTA() {
@@ -731,13 +785,13 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     g.over = true; cancelAnimationFrame(g.raf); clearTimeout(g.nt);
     var mine = Math.round((performance.now() - g.t0) + g.wrong * PEN * 1000);
     if (GUEST) { resultTA(g, { ms: mine }); return; }
-    rpc('gugu_ta_finish', { tok: TOKEN, wrongs: g.wrong }).then(function (r) { resultTA(g, r); })
+    rpc(g.mode === 'sq' ? 'gugu_sq_finish' : 'gugu_ta_finish', { tok: TOKEN, wrongs: g.wrong }).then(function (r) { resultTA(g, r); })
       .catch(function (e) { if (e.login) lost(); else resultTA(g, { ms: mine, fail: true }); });
   }
   function resultTA(g, r) {
     var pen = g.wrong * PEN, bad = r.error || r.fail;
     $app.innerHTML = head(true) +
-      '<div class="card"><div class="stars">⏱️</div><div class="sub" style="text-align:center;margin-bottom:10px">' + (g.wrong === 0 ? '하나도 안 틀렸어요! 대단해요!' : TA_N + '문제 완료!') + '</div>' +
+      '<div class="card"><div class="stars">⏱️</div><div class="sub" style="text-align:center;margin-bottom:10px">' + (g.wrong === 0 ? '하나도 안 틀렸어요! 대단해요!' : g.n + '문제 완료!') + '</div>' +
       '<div class="big">' + secs(r.ms) + '</div><div class="sub" style="text-align:center;margin-top:2px">이번 기록' + (pen ? ' (벌칙 ' + pen + '초 포함)' : '') + '</div>' +
       '<div class="stat3"><div><b>' + g.wrong + '</b><span>틀린 문제</span></div><div><b>' + (r.rank ? r.rank + '위' : '-') + '</b><span>내 순위</span></div><div><b>' + (r.best ? secs(r.best) : '-') + '</b><span>내 최고 기록</span></div></div>' +
       (r.isNew ? '<div class="newrec">🎉 내 최고 기록이에요!</div>' : '') +
@@ -747,7 +801,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       '<button class="cta" id="again">↻ 다시 도전</button><button class="cta ghost" id="rk">순위 보기</button><button class="cta ghost" id="back">게임 고르기</button>';
     tabs('game');
     document.getElementById('again').onclick = start;
-    document.getElementById('rk').onclick = function () { setup('ta'); };
+    document.getElementById('rk').onclick = function () { setup(g.mode); };
     document.getElementById('back').onclick = home;
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
