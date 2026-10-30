@@ -46,6 +46,7 @@ label{display:block;font-size:13px;font-weight:700;color:var(--sub);margin:14px 
 .who{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
 .who button{padding:6px 10px;font-size:12.5px;border-radius:8px;color:var(--sub)}
 .who button#ex{padding:10px 18px;font-size:16px;border-radius:12px;color:var(--ink);background:#262932;border-color:rgba(255,255,255,.28)}
+.who button#rs{padding:10px 12px;font-size:14px;border-radius:12px;color:var(--gold);background:#262932;border-color:rgba(255,255,255,.2)}
 .card{background:linear-gradient(180deg,#181A20 0%,#14161B 100%);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:20px;margin-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.045) inset,0 14px 34px rgba(0,0,0,.40)}
 .hero{position:relative;overflow:hidden;background:linear-gradient(118deg,#1D1F26 0%,#121317 62%,#1A1B20 100%);border:1px solid rgba(255,255,255,.075);border-radius:18px;padding:22px 20px;margin-bottom:12px;box-shadow:0 1px 0 rgba(255,255,255,.06) inset,0 22px 48px rgba(0,0,0,.55)}
 .hero:before{content:"";position:absolute;inset:0;background:radial-gradient(ellipse at 96% 6%,rgba(225,38,45,.30),transparent 46%),radial-gradient(ellipse at 4% 110%,rgba(203,170,108,.12),transparent 50%);pointer-events:none}
@@ -188,14 +189,14 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   function lost() { store(''); TOKEN = ''; ME = null; login('다시 로그인해 주세요.'); }
 
   var TGLOGO = '<img src="teamg_mark.png" alt="Team G" style="width:auto;height:24px">';
-  function head(withWho, exitBtn) {
+  function head(withWho, exitBtn, restartBtn) {
     var bn = ME && ME.grp === 'team' ? '팀그라운드 구구단' : '캐슬 구구단';
     document.title = bn;
     document.body.classList.toggle('play', !!exitBtn);   // 게임 중에는 화면 고정(스크롤 없음)
     if (exitBtn) window.scrollTo(0, 0);
     var logo = ME && ME.grp === 'team' ? TGLOGO : '<img src="logo_mark.png" alt="캐슬">';
     return '<div class="top"><span class="brand">' + logo + '<b>' + bn + '</b></span>' +
-      (exitBtn ? '<span class="who"><button id="ex">나가기</button></span>' : '') +
+      (exitBtn ? '<span class="who">' + (restartBtn ? '<button id="rs">↻ 다시 시작</button>' : '') + '<button id="ex">나가기</button></span>' : '') +
       (withWho && ME ? '<span class="who">' + esc(ME.name) + '<button id="lo">' + (GUEST ? '로그인' : '로그아웃') + '</button></span>' : '') + '</div>';
   }
   function out() { store(''); TOKEN = ''; ME = null; GUEST = false; login(''); }
@@ -671,7 +672,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     G.last = [a, b]; G.ans = a * b; G.lock = false;
     var opts = choices(a, b), btn = '';
     opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
-    $app.innerHTML = head(false, true) +
+    $app.innerHTML = head(false, true, true) +
       '<div class="hud"><span class="n">맞힌 <b>' + G.right + '</b> / ' + G.n + '</span><span class="sc" id="sw">0.0<small>초</small></span><span class="n">틀림 <b>' + G.wrong + '</b></span></div>' +
       '<div class="tbar"><i style="transform:scaleX(' + (G.right / G.n) + ')"></i></div>' +
       '<div class="card q"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
@@ -680,6 +681,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     var bs = document.querySelectorAll('#op button');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { answerTA(this); };
     document.getElementById('ex').onclick = askExitTA;
+    document.getElementById('rs').onclick = askRestartTA;
   }
   function answerTA(el) {
     if (!G || G.lock || G.over) return;
@@ -698,6 +700,20 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       if (navigator.vibrate) try { navigator.vibrate(70); } catch (e) {}
       g.nt = setTimeout(function () { if (G === g) showTA(); }, 800);
     }
+  }
+  function askRestartTA() {               // 처음부터 다시: 지금까지 기록은 버리고 3·2·1부터 새로 시작
+    if (!G || G.over) return;
+    var g = G, o = document.createElement('div'); o.className = 'ovl';
+    o.innerHTML = '<div class="box"><h2>처음부터 다시 할까요?</h2><p>지금까지의 기록은 사라지고, 3·2·1부터 새로 시작해요.</p>' +
+      '<div class="two"><button id="keep">계속하기</button><button id="again" class="red">다시 시작</button></div></div>';
+    document.body.appendChild(o);
+    document.getElementById('keep').onclick = function () { document.body.removeChild(o); };
+    document.getElementById('again').onclick = function () {
+      document.body.removeChild(o);
+      if (G !== g || g.over) return;
+      g.over = true; cancelAnimationFrame(g.raf); clearTimeout(g.nt); G = null;
+      MODE = 'ta'; start();
+    };
   }
   function askExitTA() {
     if (!G || G.over) return;
