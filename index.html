@@ -22,6 +22,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="logo_mark.png">
 <link rel="apple-touch-icon" href="logo_mark.png">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
 :root{--bg:#0B0C0F;--card:#15171C;--ink:#F3F1EC;--sub:#9C9DA6;--line:rgba(255,255,255,.085);--main:#E1262D;--gold:#CBAA6C;--ok:#4FBF8E;--bad:#FF6168;color-scheme:dark}
@@ -156,6 +157,12 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
 @media (max-height:700px){.play .q .seqq{font-size:34px}.play .q{padding:18px 10px 14px}.play .q .eq{font-size:50px}.play .opts button{height:68px;font-size:28px}.play .fb{margin-top:8px}.play .tbar{margin-bottom:8px}}
 @media (max-height:560px){.play .q .seqq{font-size:28px}.play .q{padding:8px 10px 6px}.play .q .eq{font-size:40px}.play .opts button{height:54px;font-size:24px}.play .hud{margin-bottom:4px}}
 @media (max-width:360px){.q .eq{font-size:52px}.opts button{height:76px;font-size:30px}}
+#a2hs{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:496px;margin:0 auto;z-index:50;background:var(--card);border:1px solid var(--gold);border-radius:16px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.6);font-size:15px;line-height:1.5}
+#a2hs b{display:block;font-size:16px;margin-bottom:2px}
+#a2hs .sub{color:var(--sub);font-size:14px}
+#a2hs .row{display:flex;gap:8px;margin-top:10px}
+#a2hs button{flex:1;padding:11px 8px}
+#a2hs button.go{background:var(--main);border-color:var(--main)}
 </style>
 </head>
 <body>
@@ -837,6 +844,48 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   setInterval(ping, 30000);
   document.addEventListener('visibilitychange', ping);
   if (TOKEN) { ping(); home(); } else login('');
+
+  // ---------- 홈 화면에 추가 안내 (처음 한 번만) ----------
+  (function () {
+    var KEY = 'castle-gugudan-a2hs', DEF = null;
+    function seen() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+    function mark() { try { localStorage.setItem(KEY, '1'); } catch (e) {} }
+    var standalone = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    if (standalone) { mark(); return; }
+    if (seen()) return;
+    var ua = navigator.userAgent || '';
+    var ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    var android = /Android/.test(ua);
+    if (!ios && !android) return;
+    function close() { mark(); var el = document.getElementById('a2hs'); if (el) el.remove(); }
+    function show(html, goFn) {
+      if (document.getElementById('a2hs')) return;
+      var d = document.createElement('div'); d.id = 'a2hs';
+      d.innerHTML = html + '<div class="row">' + (goFn ? '<button class="go" id="a2go">홈 화면에 추가</button>' : '') + '<button id="a2x">닫기</button></div>';
+      document.body.appendChild(d);
+      document.getElementById('a2x').onclick = close;
+      if (goFn) document.getElementById('a2go').onclick = goFn;
+    }
+    if (ios) {
+      var safari = !/CriOS|FxiOS|EdgiOS|KAKAOTALK|NAVER|Instagram|FBAN|FBAV|Line/i.test(ua);
+      setTimeout(function () {
+        show(safari
+          ? '<b>📲 홈 화면에 추가하세요</b><span class="sub">아래 가운데 <b style="display:inline">공유 버튼(네모에 화살표)</b>을 누르고 <b style="display:inline">“홈 화면에 추가”</b>를 고르면 앱처럼 바로 켤 수 있어요.</span>'
+          : '<b>📲 홈 화면에 추가하려면</b><span class="sub">이 주소를 <b style="display:inline">사파리(Safari)</b>로 열어서 공유 버튼 → “홈 화면에 추가”를 눌러 주세요.</span>');
+      }, 2500);
+    } else {
+      window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault(); DEF = e;
+        setTimeout(function () {
+          show('<b>📲 홈 화면에 추가하세요</b><span class="sub">앱처럼 바로 켤 수 있어요.</span>', function () {
+            var p = DEF; DEF = null; close();
+            if (p) { p.prompt(); }
+          });
+        }, 2500);
+      });
+      window.addEventListener('appinstalled', close);
+    }
+  })();
 })();
 </script>
 </body>
