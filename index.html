@@ -555,35 +555,36 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     return shuffle([ans].concat(wrong));
   }
 
-  // 수열 문제: 4개를 보여 주고 다음(5번째) 수를 맞혀요. 등차(공차 ±1~9) 50% · 등비(공비 2~9) 25% · 공비 1/2~1/9 25%
+  // 수열 문제: 숫자를 3~4개 보여 주고 다음 수를 맞혀요. 보이는 수·정답·보기는 모두 500 미만.
+  // 등차(공차 ±1~9) 50% · 등비(공비 2~7) 25% · 공비 1/2~1/7 25% (공비가 크면 500을 넘으니 8·9는 뺐어요)
+  var SQ_MAX = 500;
   function seqQ() {
-    var t = [], kind, step, a, i, r = Math.random();
-    function startFor(base) { var c = []; for (var v = 1; v <= 5; v++) if (v * Math.pow(base, 4) <= 20000) c.push(v); return c[rnd(0, c.length - 1)]; }
+    var t = [], kind, step, a, i, T = 5, r = Math.random();
+    function startFor(base, len) { var c = []; for (var v = 1; v <= 9; v++) if (v * Math.pow(base, len - 1) < SQ_MAX) c.push(v); return c[rnd(0, c.length - 1)]; }
     if (r < 0.5) {
       kind = 'add'; step = rnd(1, 9) * (Math.random() < 0.5 ? 1 : -1);
       a = step > 0 ? rnd(1, 30) : rnd(4 * -step + 1, 4 * -step + 30);
-      for (i = 0; i < 5; i++) t.push(a + i * step);
-    } else if (r < 0.75) {
-      kind = 'mul'; step = rnd(2, 9); a = startFor(step);
-      for (i = 0; i < 5; i++) t.push(a * Math.pow(step, i));
+      for (i = 0; i < T; i++) t.push(a + i * step);
     } else {
-      kind = 'div'; step = rnd(2, 9); a = startFor(step);
-      for (i = 0; i < 5; i++) t.push(a * Math.pow(step, 4 - i));
+      kind = r < 0.75 ? 'mul' : 'div'; step = rnd(2, 7);
+      T = Math.pow(step, 4) < SQ_MAX ? 5 : 4;           // 공비가 5 이상이면 4개 항(3개 보여 주고 다음)
+      a = startFor(step, T);
+      for (i = 0; i < T; i++) t.push(kind === 'mul' ? a * Math.pow(step, i) : a * Math.pow(step, T - 1 - i));
     }
-    return { kind: kind, step: step, shown: t.slice(0, 4), ans: t[4] };
+    return { kind: kind, step: step, shown: t.slice(0, T - 1), ans: t[T - 1] };
   }
   function seqChoices(q) {
-    var ans = q.ans, last = q.shown[3], c = {}, cand = [ans + 1, ans - 1, ans + 2, ans - 2, last];
+    var ans = q.ans, n = q.shown.length, last = q.shown[n - 1], prev = q.shown[n - 2], c = {}, cand = [ans + 1, ans - 1, ans + 2, ans - 2, last];
     if (q.kind === 'add') cand.push(ans + q.step, last + q.step + 1, last + q.step - 1, ans + 10, ans - 10);
-    else if (q.kind === 'mul') cand.push(last * (q.step + 1), last * (q.step - 1), last + q.step, last + (last - q.shown[2]), ans * 2);
-    else cand.push(Math.round(last / (q.step + 1)), Math.round(last / (q.step - 1)), last - q.step, last - (q.shown[2] - last), Math.round(ans / 2));
+    else if (q.kind === 'mul') cand.push(last * (q.step + 1), last * (q.step - 1), last + q.step, last + (last - prev), ans * 2);
+    else cand.push(Math.round(last / (q.step + 1)), Math.round(last / (q.step - 1)), last - q.step, last - (prev - last), Math.round(ans / 2));
     shuffle(cand);
     var wrong = [];
     for (var i = 0; i < cand.length && wrong.length < 3; i++) {
       var v = cand[i];
-      if (isFinite(v) && v === Math.floor(v) && v > 0 && v !== ans && !c[v]) { c[v] = 1; wrong.push(v); }
+      if (isFinite(v) && v === Math.floor(v) && v > 0 && v < SQ_MAX && v !== ans && !c[v]) { c[v] = 1; wrong.push(v); }
     }
-    for (var k = 3; wrong.length < 3; k++) { var w = ans + k; if (!c[w]) { c[w] = 1; wrong.push(w); } }
+    for (var k = 1; wrong.length < 3; k++) { var w = ans + k < SQ_MAX ? ans + k : ans - k; if (w > 0 && w !== ans && !c[w]) { c[w] = 1; wrong.push(w); } }
     return shuffle([ans].concat(wrong));
   }
 
