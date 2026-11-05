@@ -407,7 +407,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       box = document.getElementById('onl'); if (!box || !r.list) return;
       var h = '<div class="sub" style="padding:2px 0 8px"><b style="color:var(--ink)">' + r.list.length + '명</b> 접속 중</div>';
       r.list.forEach(function (x) {
-        h += '<div class="r' + (x.name === ME.name ? ' me' : '') + '"><span class="nm">' + esc(x.name) + (x.name === ME.name ? ' (나)' : '') + '<small>' + (x.grp === 'team' ? '팀그라운드' : x.grp === 'home' ? '임우리/임두리' : '일반') + '</small></span><span class="pt" style="font-size:13px;color:var(--sub)">' + (x.ago < 5 ? '방금' : x.ago + '초 전') + '</span></div>';
+        h += '<div class="r' + (x.name === ME.name ? ' me' : '') + '"><span class="nm">' + esc(x.name) + (x.name === ME.name ? ' (나)' : '') + '<small>' + (x.grp === 'team' ? '팀그라운드' : x.grp === 'castle' ? '중고등부' : x.grp === 'elem' ? '초등부' : x.grp === 'home' ? '임우리/임두리' : '일반') + '</small></span><span class="pt" style="font-size:13px;color:var(--sub)">' + (x.ago < 5 ? '방금' : x.ago + '초 전') + '</span></div>';
       });
       box.innerHTML = h;
     }).catch(function (e) { if (e.login) lost(); });
@@ -444,8 +444,14 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     rpc('gugu_admin_list', { tok: TOKEN }).then(function (r) {
       var box = document.getElementById('alist'); if (!box || !r.list) return;
       var h = note || '';
-      r.list.forEach(function (x) {
-        h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + (x.elem ? ' · 초등' : '') + '<small>' + seenText(x) + '<br>' + fmt(x.points) + '점' + (x.grp === 'team' ? ' · 팀그라운드' : x.grp === 'home' ? ' · 임우리/임두리' : '') + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
+      var G = [['team', '팀그라운드'], ['castle', '중고등부'], ['elem', '초등부'], ['', '그 외']];
+      G.forEach(function (g) {
+        var rows = r.list.filter(function (x) { return g[0] ? x.grp === g[0] : (x.grp !== 'team' && x.grp !== 'castle' && x.grp !== 'elem'); });
+        if (!rows.length) return;
+        h += '<div class="sub" style="padding:14px 0 4px;font-weight:700;color:var(--ink)">' + g[1] + ' · ' + rows.length + '명</div>';
+        rows.forEach(function (x) {
+          h += '<div class="r"><span class="nm">' + esc(x.name) + (x.admin ? ' (관리자)' : '') + '<small>' + seenText(x) + '<br>' + fmt(x.points) + '점' + (x.must ? ' · 비밀번호 변경 대기' : '') + '</small></span><button data-r="' + esc(x.name) + '">초기화</button></div>';
+        });
       });
       box.innerHTML = h;
       var bs = box.querySelectorAll('[data-r]');
