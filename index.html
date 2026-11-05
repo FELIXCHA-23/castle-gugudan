@@ -273,9 +273,16 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_ta_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_sq_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
       ME = r[0];
       if (ME.mustChange) { changePw(); return; }
+      if (isCha()) {                      // 차성빈만: 고른 그룹의 타임어택 순위로 다시 불러오기
+        rpc('gugu_ta_board', taArgs()).then(function (b) { menu(r[1], b, r[3]); }, function () { menu(r[1], r[2], r[3]); });
+        return;
+      }
       menu(r[1], r[2], r[3]);
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
+  var TAGRP = 'all';                       // 차성빈이 고른 순위 그룹: all / team / castle / elem
+  function isCha() { return !!(ME && ME.name === '차성빈'); }
+  function taArgs() { return isCha() ? { tok: TOKEN, p_grp: TAGRP } : { tok: TOKEN }; }
   function boardRows(board) {
     var top = (board && board.top) || [], rows = '', myRank = board && board.rank;
     top.forEach(function (b, i) {
@@ -293,7 +300,12 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     return rows ? '<div class="card fr"><h2>' + title + '</h2><div class="sub">' + sub + '</div><div class="board">' + rows + '</div></div>' : '';
   }
   function TACARDS(tb, sb) {
-    return taCard(tb, '⏱️ 구구단 타임어택 순위', '20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.') + taCard(sb, '📈 수열 타임어택 순위', '수열 10문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.');
+    var pick = '';
+    if (isCha()) {
+      pick = '<div class="card fr"><div class="sub" style="margin-bottom:8px">구구단 타임어택 순위로 볼 그룹 (관리자만 보여요)</div><select id="tagrp" style="width:100%;height:44px;font-size:15px;border-radius:10px;padding:0 10px">' +
+        [['all', '전체'], ['team', '팀그라운드'], ['castle', '캐슬수학 중고등부'], ['elem', '캐슬수학 초등부']].map(function (g) { return '<option value="' + g[0] + '"' + (g[0] === TAGRP ? ' selected' : '') + '>' + g[1] + '</option>'; }).join('') + '</select></div>';
+    }
+    return pick + taCard(tb, '⏱️ 구구단 타임어택 순위', '20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.') + taCard(sb, '📈 수열 타임어택 순위', '수열 10문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.');
   }
   function menu(board, tb, sb) {
     $app.innerHTML = head(true) +
@@ -310,6 +322,8 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     tabs('game');
     var bs = $app.querySelectorAll('.mode');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { setup(this.getAttribute('data-m')); };
+    var tg = document.getElementById('tagrp');
+    if (tg) tg.onchange = function () { TAGRP = this.value; home(); };
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
     if (document.getElementById('reg')) document.getElementById('reg').onclick = function () { login('', 'up'); };
   }
@@ -318,7 +332,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     if (m === 'big') { drawBig(); return; }
     if (m === 'dan' || m === 'score') { MODE = 'dan'; draw(null); return; }
     if (GUEST) { drawTA(null); return; }
-    rpc(m === 'sq' ? 'gugu_sq_board' : 'gugu_ta_board', { tok: TOKEN }).catch(function (e) { if (e.login) throw e; return null; })
+    rpc(m === 'sq' ? 'gugu_sq_board' : 'gugu_ta_board', m === 'sq' ? { tok: TOKEN } : taArgs()).catch(function (e) { if (e.login) throw e; return null; })
       .then(function (b) { drawTA(b); }, function () { lost(); });
   }
   var ICON = {
