@@ -179,7 +179,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }); });
   var picked = [], G = null, ME = null, TOKEN = '', GUEST = false;
   var MODE = 'dan', BIGLV = 1, TA_N = 20, SQ_N = 10, PEN = 3;   // dan: 구구단 점수 / ta: 타임어택(20문제 모두 정답, 틀리면 +3초) / big: 큰 수 곱셈
-  var MULT = { dan: 1, big1: 1.5, big2: 2.5 }, BIG = { big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 } };
+  var MULT = { dan: 1, easy: 1, big1: 1.5, big2: 2.5 }, BIG = { easy: { sec: 15, win: 8 }, big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 } };
 
   function store(v) { try { if (v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); } catch (e) {} }
   function stored() { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } }
@@ -316,7 +316,8 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       '<div class="modes">' +
       '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>구구단 타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
       '<button class="mode" data-m="sq"><span class="ic">📈</span><div><b>수열 타임어택</b><span>다음에 올 수를 맞혀요 · 10문제 · 빠른 순서로 순위</span></div></button>' +
-      '<button class="mode" data-m="score"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>구구단 · 큰 수 곱셈 · 점수가 쌓여요</span></div></button></div>' +
+      '<button class="mode" data-m="score"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>구구단 · 큰 수 곱셈 · 점수가 쌓여요</span></div></button>' +
+      (ME && (ME.grp === 'elem' || isCha()) ? '<button class="mode" data-m="easy"><span class="ic">✨</span><div><b>쉬운 곱셈 (두 자리 × 한 자리)</b><span>12 × 3 처럼 올림이 없는 쉬운 문제 · 점수가 쌓여요</span></div></button>' : '') + '</div>' +
       (ME && ME.grp === 'team' ? '' : TACARDS(tb, sb)) +
       (boardRows(board) ? '<div class="card fr"><h2>점수판</h2><div class="sub">구구단 점수 도전과 큰 수 곱셈 점수를 합친 순위예요. 타임어택 최고 기록도 함께 보여요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
     tabs('game');
@@ -330,6 +331,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   function setup(m) {
     MODE = m === 'score' ? 'dan' : m;
     if (m === 'big') { drawBig(); return; }
+    if (m === 'easy') { MODE = 'easy'; drawEasy(); return; }
     if (m === 'dan' || m === 'score') { MODE = 'dan'; draw(null); return; }
     if (GUEST) { drawTA(null); return; }
     rpc(m === 'sq' ? 'gugu_sq_board' : 'gugu_ta_board', m === 'sq' ? { tok: TOKEN } : taArgs()).catch(function (e) { if (e.login) throw e; return null; })
@@ -412,7 +414,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       if (ME.admin) teamList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
-  var MODENAME = { dan: '구구단 점수 도전', ta: '구구단 타임어택', sq: '수열 타임어택', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
+  var MODENAME = { dan: '구구단 점수 도전', ta: '구구단 타임어택', sq: '수열 타임어택', easy: '쉬운 두 자리 × 한 자리', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
   var OT = 0;
   function onlineList() {                  // 관리자만: 지금 접속 중인 사람 (15초마다 새로고침)
     var box = document.getElementById('onl');
@@ -525,6 +527,15 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     document.getElementById('bk').onclick = home;
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
+  function drawEasy() {
+    $app.innerHTML = head(true) +
+      '<div class="card"><h2>✨ 쉬운 곱셈</h2><div class="rule">두 자리 × 한 자리, 올림이 없는 쉬운 문제예요.<br>예) 12 × 3, 23 × 2, 41 × 4<br>10문제, 문제마다 ' + BIG.easy.sec + '초예요.</div></div>' +
+      '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
+    tabs('game');
+    document.getElementById('go').onclick = start;
+    document.getElementById('bk').onclick = home;
+    document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
+  }
   function draw(board) {
     var all = picked.length === 0, chips = '';
     for (var d = 2; d <= 9; d++) chips += '<button data-d="' + d + '" class="' + (picked.indexOf(d) >= 0 ? 'on' : '') + '">' + d + '단</button>';
@@ -567,6 +578,19 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       var a = two(), b = lv === 1 ? rnd(2, 9) : two();
       if (last && last[0] === a && last[1] === b) continue;
       last = [a, b]; out.push(last);
+    }
+    return out;
+  }
+  function easyDeck(n) {                      // 두 자리 × 한 자리, 일의 자리·십의 자리 모두 올림 없음 (예: 12×3, 23×2). 10의 배수는 뺌
+    var pool = [], out = [];
+    for (var b = 2; b <= 4; b++) for (var t = 1; t * b <= 9; t++) for (var u = 1; u * b <= 9; u++) pool.push([t * 10 + u, b]);
+    while (out.length < n) {
+      shuffle(pool);
+      for (var i = 0; i < pool.length && out.length < n; i++) {
+        var last = out[out.length - 1];
+        if (last && last[0] === pool[i][0] && last[1] === pool[i][1]) continue;
+        out.push(pool[i]);
+      }
     }
     return out;
   }
@@ -623,8 +647,8 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
         G = { mode: MODE, n: MODE === 'sq' ? SQ_N : TA_N, i: 0, right: 0, wrong: 0, last: null, t0: performance.now(), raf: 0, nt: 0, lock: false, over: false };
         showTA(); swTick(); return;
       }
-      var mk = MODE === 'big' ? 'big' + BIGLV : 'dan', n = MODE === 'big' ? 10 : ROUNDS;
-      G = { mode: mk, mult: MULT[mk], n: n, qs: MODE === 'big' ? bigDeck(n, BIGLV) : deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, nt: 0, lock: false, paused: false, pend: [], fail: false };
+      var mk = MODE === 'big' ? 'big' + BIGLV : MODE === 'easy' ? 'easy' : 'dan', n = MODE === 'big' || MODE === 'easy' ? 10 : ROUNDS;
+      G = { mode: mk, mult: MULT[mk], n: n, qs: MODE === 'big' ? bigDeck(n, BIGLV) : MODE === 'easy' ? easyDeck(n) : deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, nt: 0, lock: false, paused: false, pend: [], fail: false };
       show();
     }
     function run() {
