@@ -162,6 +162,8 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
 .krow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;font-weight:700}
 .krow small{display:block;color:var(--sub);font-weight:600;font-size:12px;margin-top:1px}
 .krow button{padding:7px 10px;font-size:12.5px;border-radius:8px}
+.dbox{margin:2px 0 8px;padding:6px 10px;background:rgba(255,255,255,.03);border-radius:10px}
+.drow{display:grid;grid-template-columns:62px 1fr auto;gap:8px;padding:4px 0;font-size:13px;font-weight:600}.drow span:last-child{color:var(--gold)}.drow.old{color:var(--sub)}
 .kidbox details{border-top:1px solid var(--line);margin-top:2px}
 .kidbox summary{cursor:pointer;color:var(--gold);font-weight:700;font-size:14px;padding:10px 0}
 .dans button:disabled{opacity:.4;text-decoration:line-through}
@@ -190,7 +192,18 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   var MULT = { dan: 1, easy: 1, big1: 1.5, big2: 2.5, div: 1.5 }, BIG = { easy: { sec: 15, win: 8 }, big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 }, div: { sec: 20, win: 10 } };
   var HOMEKIDS = ['임우리', '임두리'];                      // 집에서 쓰는 두 아이: 다른 학생과 따로 보여요
   var LOCKNOTE = '';
-  function doneDans() { return (ME && ME.lock && ME.done) ? ME.done : []; }          // 이미 한 번 푼 단 (잠금 대상 아이만)
+  var LT = 0;
+  function setLocks(r) { if (r && r.done && ME) { ME.done = r.done; ME.left = r.left || {}; ME.leftAt = Date.now(); } }
+  function doneDans() {                                                               // 방금 푼 단 (잠금 대상 아이만, 끝난 뒤 30분 동안)
+    if (!(ME && ME.lock && ME.done)) return [];
+    var el = (Date.now() - (ME.leftAt || 0)) / 1000, L = ME.left || {};
+    return ME.done.filter(function (d) { return L[d] === undefined || L[d] - el > 0; });
+  }
+  function lockMins() {                                                               // 가장 먼저 열리는 단까지 남은 분
+    var el = (Date.now() - (ME.leftAt || 0)) / 1000, L = ME.left || {}, m = 1e9;
+    doneDans().forEach(function (d) { if (L[d] !== undefined) m = Math.min(m, L[d] - el); });
+    return m === 1e9 ? 30 : Math.max(1, Math.ceil(m / 60));
+  }
   function freeDans() { var d = doneDans(), out = []; for (var i = 2; i <= 9; i++) if (d.indexOf(i) < 0) out.push(i); return out; }
   function isHome(x) { return HOMEKIDS.indexOf(x.name) >= 0 || x.grp === 'home'; }
 
@@ -284,7 +297,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   function home() {                       // 게임 고르기
     if (GUEST) { menu(null); return; }
     Promise.all([rpc('gugu_me', { tok: TOKEN }), rpc('gugu_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_ta_board', { tok: TOKEN }).catch(function () { return null; }), rpc('gugu_sq_board', { tok: TOKEN }).catch(function () { return null; })]).then(function (r) {
-      ME = r[0];
+      ME = r[0]; setLocks(ME);
       if (ME.mustChange) { changePw(); return; }
       if (isCha()) {                      // 차성빈만: 고른 그룹의 타임어택 순위로 다시 불러오기
         rpc('gugu_ta_board', taArgs()).then(function (b) { menu(r[1], b, r[3]); }, function () { menu(r[1], r[2], r[3]); });
@@ -410,7 +423,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   function meTab() {
     if (GUEST) { guestTab('me', '내 점수와 기록이 저장돼요.'); return; }
     rpc('gugu_me', { tok: TOKEN }).then(function (r) {
-      ME = r;
+      ME = r; setLocks(ME);
       $app.innerHTML = head(true) +
         '<div class="hero"><div class="hi">내 정보</div><h1>' + esc(ME.name) + '</h1></div>' +
         '<div class="card"><div class="stat3"><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div><div><b>' + fmt(ME.best) + '</b><span>한 판 최고</span></div><div><b>' + (ME.ta ? secs(ME.ta) : '-') + '</b><span>타임어택 최고</span></div></div>' +
@@ -471,15 +484,25 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
           var t = tot[k]; if (!t) return;
           var n = t.ok + t.bad, share = (k !== 'ta' && k !== 'sq' && okAll) ? Math.round(t.ok * 100 / okAll) + '%' : '';
           h += '<div class="krow"><span>' + esc(KINDNAME[k]) + '<small>' + (n ? '정답률 ' + Math.round(t.ok * 100 / n) + '%' : '') + (share ? ' · 점수 낸 문제 중 ' + share : '') + '</small></span><span style="text-align:right">' + fmt(n) + '문제<small>정답 ' + fmt(t.ok) + (t.pts ? ' · ' + (t.pts > 0 ? '+' : '') + fmt(t.pts) + '점' : '') + '</small></span></div>';
+          if (k === 'dan') {                                     // 몇 단에서 땄는지 (단 기록은 이 기능을 넣은 뒤부터)
+            var dr = (sum.dans || []).filter(function (y) { return y.name === c.name; }), nd = (sum.nodan || []).filter(function (y) { return y.name === c.name; })[0], dh = '';
+            for (var dn2 = 2; dn2 <= 9; dn2++) {
+              var xx = dr.filter(function (y) { return y.dan === dn2; })[0]; if (!xx) continue;
+              var nn = xx.ok + xx.bad;
+              dh += '<div class="drow"><span>' + dn2 + '단</span><span>' + fmt(nn) + '문제 · 정답 ' + fmt(xx.ok) + ' (' + Math.round(xx.ok * 100 / nn) + '%)</span><span>' + (xx.pts > 0 ? '+' : '') + fmt(xx.pts) + '점</span></div>';
+            }
+            if (nd) dh += '<div class="drow old"><span>단 구분 전</span><span>' + fmt(nd.n) + '문제 · 정답 ' + fmt(nd.ok) + '</span><span></span></div>';
+            h += '<div class="dbox">' + (dh || '<div class="sub">단별 기록은 지금부터 쌓여요.</div>') + '</div>';
+          }
         });
         if (c.lock) {
           var dn = c.done || [];
-          h += '<div class="krow"><span>🔒 한 번 한 단<small>' + (dn.length ? dn.join('단 · ') + '단 (당분간 못 해요)' : '아직 없어요') + '</small></span>' + (ME.admin && dn.length ? '<button data-u="' + esc(c.name) + '">잠금 풀기</button>' : '') + '</div>';
+          h += '<div class="krow"><span>🔒 한 번 한 단<small>' + (dn.length ? dn.join('단 · ') + '단 (끝나고 30분 동안 못 해요)' : '아직 없어요') + '</small></span>' + (ME.admin && dn.length ? '<button data-u="' + esc(c.name) + '">잠금 풀기</button>' : '') + '</div>';
         }
         var mine = lg.list.filter(function (x) { return x.name === c.name; }), day = '', body = '';
         mine.forEach(function (x) {
           if (x.day !== day) { day = x.day; body += '<div class="sub" style="padding:10px 0 2px;font-weight:700">' + esc(x.day.slice(5).replace('-', '월 ') + '일') + '</div>'; }
-          body += '<div class="r"><span class="nm">' + esc(MODENAME[x.mode] || x.mode) + '<small>' + esc(x.from + (x.to !== x.from ? ' ~ ' + x.to : '')) + '</small></span><span class="pt">' + fmt(x.ok + x.bad) + '문제<small style="display:block;text-align:right;color:var(--sub);font-weight:600;font-size:12px">정답 ' + fmt(x.ok) + (x.pts ? ' · ' + (x.pts > 0 ? '+' : '') + fmt(x.pts) + '점' : '') + '</small></span></div>';
+          body += '<div class="r"><span class="nm">' + esc(MODENAME[x.mode] || x.mode) + '<small>' + esc(x.from + (x.to !== x.from ? ' ~ ' + x.to : '') + (x.dans && x.dans.length ? ' · ' + x.dans.join('·') + '단' : '')) + '</small></span><span class="pt">' + fmt(x.ok + x.bad) + '문제<small style="display:block;text-align:right;color:var(--sub);font-weight:600;font-size:12px">정답 ' + fmt(x.ok) + (x.pts ? ' · ' + (x.pts > 0 ? '+' : '') + fmt(x.pts) + '점' : '') + '</small></span></div>';
         });
         h += '<details><summary>날짜별 기록 보기 (' + mine.length + '번)</summary>' + (body || '<div class="sub">아직 기록이 없어요.</div>') + '</details></div>';
       });
@@ -592,10 +615,12 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     var all = picked.length === 0, chips = '', dd = doneDans(), lockOn = !!(ME && ME.lock), none = lockOn && freeDans().length === 0, note = LOCKNOTE; LOCKNOTE = '';
     picked = picked.filter(function (v) { return dd.indexOf(v) < 0; });
     all = picked.length === 0;
+    clearTimeout(LT);
+    if (lockOn && dd.length) LT = setTimeout(function () { if (document.getElementById('ssg') && MODE === 'dan') draw(null); }, lockMins() * 60000 + 1000);   // 잠금이 풀릴 때 화면 새로 그리기
     for (var d = 2; d <= 9; d++) { var dn = dd.indexOf(d) >= 0; chips += '<button data-d="' + d + '" class="' + (picked.indexOf(d) >= 0 ? 'on' : '') + '"' + (dn ? ' disabled' : '') + '>' + (dn ? '🔒 ' : '') + d + '단</button>'; }
     $app.innerHTML = head(true) +
       '<div class="card"><h2>🎯 구구단 점수 도전</h2>' + scoreSeg('dan') + '<div class="sub" style="margin-bottom:8px">30문제 · 연습할 단을 골라요.</div><h2 style="font-size:14px;color:var(--sub);margin-top:10px">연습할 단</h2><div class="sub">' + (lockOn ? '고르지 않으면 아직 안 한 단이 모두 나옵니다.' : '고르지 않으면 2단부터 9단까지 모두 나옵니다.') + '</div>' +
-      (lockOn ? '<div class="warn" style="color:var(--gold);text-align:left;margin:8px 0 0">' + (none ? '🔒 구구단은 당분간 쉬어요. 두 자리 곱셈과 나눗셈은 계속 할 수 있어요.' : '🔒 한 번 한 단은 당분간 쉬어요. 두 자리 문제는 계속 할 수 있어요.') + '</div>' : '') +
+      (lockOn ? '<div class="warn" style="color:var(--gold);text-align:left;margin:8px 0 0">' + (none ? '🔒 구구단은 잠깐 쉬어요. 약 ' + lockMins() + '분 뒤에 다시 열려요. 두 자리 곱셈과 나눗셈은 계속 할 수 있어요.' : '🔒 한 번 한 단은 끝나고 30분 동안 쉬어요. (약 ' + lockMins() + '분 뒤에 열려요) 두 자리 문제는 계속 할 수 있어요.') + '</div>' : '') +
       (note ? '<div class="warn" style="text-align:left;margin:8px 0 0">' + esc(note) + '</div>' : '') +
       '<div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all"' + (none ? ' disabled' : '') + '>' + (lockOn ? '아직 안 한 단 전체' : '전체 (2~9단)') + '</button></div></div>' +
       '<button class="cta" id="go"' + (none ? ' disabled' : '') + '>▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
@@ -738,8 +763,8 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       var score = !(MODE === 'sq' || MODE === 'ta'), args = { tok: TOKEN };
       if (score) { args.p_mode = MODE === 'big' ? 'big' + BIGLV : MODE === 'easy' ? 'easy' : MODE === 'div' ? 'div' : 'dan'; if (MODE === 'dan') args.p_dans = picked.length ? picked : freeDans(); }
       rpc(MODE === 'sq' ? 'gugu_sq_start' : MODE === 'ta' ? 'gugu_ta_start' : 'gugu_start', args).then(function (r) {
-        if (r && r.done && ME) ME.done = r.done;
-        if (r && r.error === 'dan_locked') { LOCKNOTE = '이미 한 단이 들어 있어요. 아직 안 한 단을 골라 주세요.'; draw(null); return; }
+        setLocks(r);
+        if (r && r.error === 'dan_locked') { LOCKNOTE = '방금 한 단이 들어 있어요. 다른 단을 고르거나 잠시 뒤에 해요.'; draw(null); return; }
         if (r && r.error) { home(); return; }
         begin();
       }).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
@@ -843,7 +868,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     }
     G.score += d;
     var g = G;
-    if (!GUEST) g.pend.push(rpc('gugu_answer', { tok: TOKEN, kind: kind, secs_left: left, p_mode: g.mode }).then(function (r) { ME.points = r.points; ME.best = r.best; }).catch(function (e) { if (e.login) g.lostLogin = true; g.fail = true; }));
+    if (!GUEST) g.pend.push(rpc('gugu_answer', { tok: TOKEN, kind: kind, secs_left: left, p_mode: g.mode, p_dan: g.mode === 'dan' ? g.qs[g.i][0] : null }).then(function (r) { ME.points = r.points; ME.best = r.best; }).catch(function (e) { if (e.login) g.lostLogin = true; g.fail = true; }));
     G.nt = setTimeout(next, PAUSE);
   }
 
