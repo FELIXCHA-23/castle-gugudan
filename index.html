@@ -157,6 +157,14 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
 @media (max-height:700px){.play .q .seqq{font-size:34px}.play .q{padding:18px 10px 14px}.play .q .eq{font-size:50px}.play .opts button{height:68px;font-size:28px}.play .fb{margin-top:8px}.play .tbar{margin-bottom:8px}}
 @media (max-height:560px){.play .q .seqq{font-size:28px}.play .q{padding:8px 10px 6px}.play .q .eq{font-size:40px}.play .opts button{height:54px;font-size:24px}.play .hud{margin-bottom:4px}}
 @media (max-width:360px){.q .eq{font-size:52px}.opts button{height:76px;font-size:30px}}
+.kidbox{border:1px solid var(--line);border-radius:14px;padding:14px 14px 8px;margin-top:12px;background:rgba(255,255,255,.02)}
+.kh{display:flex;align-items:baseline;justify-content:space-between;gap:10px}.kh b{font-size:19px}.kh span{color:var(--gold);font-weight:800;font-size:18px}
+.krow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:14px;font-weight:700}
+.krow small{display:block;color:var(--sub);font-weight:600;font-size:12px;margin-top:1px}
+.krow button{padding:7px 10px;font-size:12.5px;border-radius:8px}
+.kidbox details{border-top:1px solid var(--line);margin-top:2px}
+.kidbox summary{cursor:pointer;color:var(--gold);font-weight:700;font-size:14px;padding:10px 0}
+.dans button:disabled{opacity:.4;text-decoration:line-through}
 #a2hs{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));max-width:496px;margin:0 auto;z-index:50;background:var(--card);border:1px solid var(--gold);border-radius:16px;padding:14px 16px;box-shadow:0 8px 30px rgba(0,0,0,.6);font-size:15px;line-height:1.5}
 #a2hs b{display:block;font-size:16px;margin-bottom:2px}
 #a2hs .sub{color:var(--sub);font-size:14px}
@@ -179,7 +187,12 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (ev) { document.addEventListener(ev, function (e) { e.preventDefault(); }); });
   var picked = [], G = null, ME = null, TOKEN = '', GUEST = false;
   var MODE = 'dan', BIGLV = 1, TA_N = 20, SQ_N = 10, PEN = 3;   // dan: 구구단 점수 / ta: 타임어택(20문제 모두 정답, 틀리면 +3초) / big: 큰 수 곱셈
-  var MULT = { dan: 1, easy: 1, big1: 1.5, big2: 2.5 }, BIG = { easy: { sec: 15, win: 8 }, big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 } };
+  var MULT = { dan: 1, easy: 1, big1: 1.5, big2: 2.5, div: 1.5 }, BIG = { easy: { sec: 15, win: 8 }, big1: { sec: 20, win: 10 }, big2: { sec: 40, win: 20 }, div: { sec: 20, win: 10 } };
+  var HOMEKIDS = ['임우리', '임두리'];                      // 집에서 쓰는 두 아이: 다른 학생과 따로 보여요
+  var LOCKNOTE = '';
+  function doneDans() { return (ME && ME.lock && ME.done) ? ME.done : []; }          // 이미 한 번 푼 단 (잠금 대상 아이만)
+  function freeDans() { var d = doneDans(), out = []; for (var i = 2; i <= 9; i++) if (d.indexOf(i) < 0) out.push(i); return out; }
+  function isHome(x) { return HOMEKIDS.indexOf(x.name) >= 0 || x.grp === 'home'; }
 
   function store(v) { try { if (v) localStorage.setItem(TK, v); else localStorage.removeItem(TK); } catch (e) {} }
   function stored() { try { return localStorage.getItem(TK) || ''; } catch (e) { return ''; } }
@@ -305,7 +318,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       pick = '<div class="card fr"><div class="sub" style="margin-bottom:8px">구구단 타임어택 순위로 볼 그룹 (관리자만 보여요)</div><select id="tagrp" style="width:100%;height:44px;font-size:15px;border-radius:10px;padding:0 10px">' +
         [['all', '전체'], ['team', '팀그라운드'], ['castle', '캐슬수학 중고등부'], ['elem', '캐슬수학 초등부']].map(function (g) { return '<option value="' + g[0] + '"' + (g[0] === TAGRP ? ' selected' : '') + '>' + g[1] + '</option>'; }).join('') + '</select></div>';
     }
-    return pick + taCard(tb, '⏱️ 구구단 타임어택 순위', '20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.') + taCard(sb, '📈 수열 타임어택 순위', '수열 10문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.');
+    return pick + taCard(tb, '⏱️ 구구단 타임어택 순위', '20문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.') + (ME && ME.nosq ? '' : taCard(sb, '📈 수열 타임어택 순위', '수열 10문제를 가장 빨리 맞힌 순서예요. 틀리면 시간이 더해져요.'));
   }
   function menu(board, tb, sb) {
     $app.innerHTML = head(true) +
@@ -315,11 +328,11 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       (ME && ME.grp === 'team' ? TACARDS(tb, sb) : '') +
       '<div class="modes">' +
       '<button class="mode" data-m="ta"><span class="ic">⏱️</span><div><b>구구단 타임어택</b><span>20문제를 다 맞힐 때까지 · 빠른 순서로 순위</span></div></button>' +
-      '<button class="mode" data-m="sq"><span class="ic">📈</span><div><b>수열 타임어택</b><span>다음에 올 수를 맞혀요 · 10문제 · 빠른 순서로 순위</span></div></button>' +
-      '<button class="mode" data-m="score"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>구구단 · 큰 수 곱셈 · 점수가 쌓여요</span></div></button>' +
+      (ME && ME.nosq ? '' : '<button class="mode" data-m="sq"><span class="ic">📈</span><div><b>수열 타임어택</b><span>다음에 올 수를 맞혀요 · 10문제 · 빠른 순서로 순위</span></div></button>') +
+      '<button class="mode" data-m="score"><span class="ic">🎯</span><div><b>구구단 점수 도전</b><span>구구단 · 큰 수 곱셈 · 나눗셈 · 점수가 쌓여요</span></div></button>' +
       (ME && (ME.grp === 'elem' || isCha()) ? '<button class="mode" data-m="easy"><span class="ic">✨</span><div><b>쉬운 곱셈 (두 자리 × 한 자리)</b><span>12 × 3 처럼 올림이 없는 쉬운 문제 · 점수가 쌓여요</span></div></button>' : '') + '</div>' +
       (ME && ME.grp === 'team' ? '' : TACARDS(tb, sb)) +
-      (boardRows(board) ? '<div class="card fr"><h2>점수판</h2><div class="sub">구구단 점수 도전과 큰 수 곱셈 점수를 합친 순위예요. 타임어택 최고 기록도 함께 보여요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
+      (boardRows(board) ? '<div class="card fr"><h2>점수판</h2><div class="sub">구구단 점수 도전(큰 수 곱셈·나눗셈 포함) 점수를 합친 순위예요. 타임어택 최고 기록도 함께 보여요.</div><div class="board">' + boardRows(board) + '</div></div>' : '');
     tabs('game');
     var bs = $app.querySelectorAll('.mode');
     for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { setup(this.getAttribute('data-m')); };
@@ -403,7 +416,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
         '<div class="card"><div class="stat3"><div><b>' + fmt(ME.points) + '</b><span>누적 점수</span></div><div><b>' + fmt(ME.best) + '</b><span>한 판 최고</span></div><div><b>' + (ME.ta ? secs(ME.ta) : '-') + '</b><span>타임어택 최고</span></div></div>' +
         '<div class="sub" style="text-align:center;margin-top:12px">지금까지 ' + fmt(ME.plays) + '판 했어요.</div></div>' +
         (ME.admin ? '<div class="card fr"><h2>지금 접속 중</h2><div class="sub">지금 앱을 켜 둔 사람이에요. 관리자에게만 보여요.</div><div class="board" id="onl"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
-        (ME.log ? '<div class="card fr"><h2>플레이 기록</h2><div class="sub">임우리·임두리가 언제, 몇 문제를 풀었는지 보여요. (10분 이상 쉬면 새 기록)</div><div class="board" id="plog"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
+        (ME.log ? '<div class="card fr"><h2>임우리 · 임두리 기록</h2><div class="sub">아이별로, 어떤 게임을 몇 문제 풀었는지 보여요. 오민경 선생님과 차성빈 원장님에게만 보여요. (10분 이상 쉬면 새 기록)</div><div class="board" id="plog"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr"><h2>팀그라운드 정리</h2><div class="sub">팀그라운드 구구단 멤버만의 기록이에요. 학생들에게는 보이지 않아요.</div><div class="board" id="team"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '') +
         (ME.admin ? '<div class="card fr" id="adm"><h2>관리자</h2><div class="sub">전체 멤버를 최근 접속 순으로 보여요. 비밀번호를 0000으로 되돌릴 수도 있어요. (접속 시각은 오늘부터 기록돼요)</div><div class="board" id="alist"><div class="sub" style="padding:10px 0">불러오는 중...</div></div></div>' : '');
       tabs('me');
@@ -414,7 +427,10 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       if (ME.admin) teamList();
     }).catch(function (e) { if (e.login) lost(); else login('연결이 되지 않습니다. 잠시 뒤에 다시 해 주세요.'); });
   }
-  var MODENAME = { dan: '구구단 점수 도전', ta: '구구단 타임어택', sq: '수열 타임어택', easy: '쉬운 두 자리 × 한 자리', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)' };
+  var MODENAME = { dan: '구구단 점수 도전', ta: '구구단 타임어택', sq: '수열 타임어택', easy: '쉬운 두 자리 × 한 자리', big1: '큰 수 곱셈 (두 자리 × 한 자리)', big2: '큰 수 곱셈 (두 자리 × 두 자리)', div: '나눗셈 (두 자리 ÷ 한 자리)' };
+  var KIND = { dan: 'dan', easy: 'm21', big1: 'm21', big2: 'm22', div: 'div', ta: 'ta', sq: 'sq' };      // 기록을 보기 좋게 묶는 종류
+  var KINDNAME = { dan: '구구단 (한 자리)', m21: '두 자리 × 한 자리', m22: '두 자리 × 두 자리', div: '두 자리 ÷ 한 자리', ta: '구구단 타임어택', sq: '수열 타임어택' };
+  var KINDORDER = ['dan', 'm21', 'm22', 'div', 'ta', 'sq'];
   var OT = 0;
   function onlineList() {                  // 관리자만: 지금 접속 중인 사람 (15초마다 새로고침)
     var box = document.getElementById('onl');
@@ -423,7 +439,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       box = document.getElementById('onl'); if (!box || !r.list) return;
       var h = '<div class="sub" style="padding:2px 0 8px"><b style="color:var(--ink)">' + r.list.length + '명</b> 접속 중</div>';
       r.list.forEach(function (x) {
-        h += '<div class="r' + (x.name === ME.name ? ' me' : '') + '"><span class="nm">' + esc(x.name) + (x.name === ME.name ? ' (나)' : '') + '<small>' + (x.grp === 'team' ? '팀그라운드' : x.grp === 'castle' ? '중고등부' : x.grp === 'elem' ? '초등부' : x.grp === 'home' ? '임우리/임두리' : '일반') + '</small></span><span class="pt" style="font-size:13px;color:var(--sub)">' + (x.ago < 5 ? '방금' : x.ago + '초 전') + '</span></div>';
+        h += '<div class="r' + (x.name === ME.name ? ' me' : '') + '"><span class="nm">' + esc(x.name) + (x.name === ME.name ? ' (나)' : '') + '<small>' + (isHome(x) ? '임우리/임두리' : x.grp === 'team' ? '팀그라운드' : x.grp === 'castle' ? '중고등부' : x.grp === 'elem' ? '초등부' : '일반') + '</small></span><span class="pt" style="font-size:13px;color:var(--sub)">' + (x.ago < 5 ? '방금' : x.ago + '초 전') + '</span></div>';
       });
       box.innerHTML = h;
     }).catch(function (e) { if (e.login) lost(); });
@@ -440,15 +456,40 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     }).catch(function (e) { if (e.login) lost(); });
   }
   function logList() {
-    rpc('gugu_log', { tok: TOKEN }).then(function (r) {
-      var box = document.getElementById('plog'); if (!box || !r.list) return;
-      if (!r.list.length) { box.innerHTML = '<div class="sub" style="padding:10px 0">아직 기록이 없어요.</div>'; return; }
-      var h = '', day = '';
-      r.list.forEach(function (x) {
-        if (x.day !== day) { day = x.day; h += '<div class="sub" style="padding:12px 0 4px;font-weight:700">' + esc(x.day.slice(5).replace('-', '월 ') + '일') + '</div>'; }
-        h += '<div class="r"><span class="nm">' + esc(x.name) + '<small>' + esc(x.from + (x.to !== x.from ? ' ~ ' + x.to : '')) + ' · ' + esc(MODENAME[x.mode] || x.mode) + '</small></span><span class="pt">' + fmt(x.ok + x.bad) + '문제<small style="display:block;text-align:right;color:var(--sub);font-weight:600;font-size:12px">정답 ' + fmt(x.ok) + '</small></span></div>';
+    Promise.all([rpc('gugu_log_sum', { tok: TOKEN }), rpc('gugu_log', { tok: TOKEN })]).then(function (rr) {
+      var box = document.getElementById('plog'); if (!box) return;
+      var sum = rr[0], lg = rr[1]; if (!sum.list || !lg.list) return;
+      var kids = (sum.kids || []).slice().sort(function (p, q) { var i = HOMEKIDS.indexOf(p.name), j = HOMEKIDS.indexOf(q.name); return (i < 0 ? 9 : i) - (j < 0 ? 9 : j); });
+      if (!kids.length) { box.innerHTML = '<div class="sub" style="padding:10px 0">아직 기록이 없어요.</div>'; return; }
+      var h = '';
+      kids.forEach(function (c) {
+        var tot = {}, okAll = 0;
+        sum.list.forEach(function (x) { if (x.name !== c.name) return; var k = KIND[x.mode] || 'dan', t = tot[k] || (tot[k] = { n: 0, ok: 0, bad: 0, pts: 0 }); t.n += x.n; t.ok += x.ok; t.bad += x.bad; t.pts += x.pts; if (k !== 'ta' && k !== 'sq') okAll += x.ok; });
+        h += '<div class="kidbox"><div class="kh"><b>' + esc(c.name) + '</b><span>' + fmt(c.points) + '점</span></div>';
+        h += '<div class="sub" style="margin:2px 0 6px">한 판 최고 ' + fmt(c.best) + ' · ' + fmt(c.plays) + '판' + (c.ta ? ' · 타임어택 ' + secs(c.ta) : '') + '</div>';
+        KINDORDER.forEach(function (k) {
+          var t = tot[k]; if (!t) return;
+          var n = t.ok + t.bad, share = (k !== 'ta' && k !== 'sq' && okAll) ? Math.round(t.ok * 100 / okAll) + '%' : '';
+          h += '<div class="krow"><span>' + esc(KINDNAME[k]) + '<small>' + (n ? '정답률 ' + Math.round(t.ok * 100 / n) + '%' : '') + (share ? ' · 점수 낸 문제 중 ' + share : '') + '</small></span><span style="text-align:right">' + fmt(n) + '문제<small>정답 ' + fmt(t.ok) + (t.pts ? ' · ' + (t.pts > 0 ? '+' : '') + fmt(t.pts) + '점' : '') + '</small></span></div>';
+        });
+        if (c.lock) {
+          var dn = c.done || [];
+          h += '<div class="krow"><span>🔒 한 번 한 단<small>' + (dn.length ? dn.join('단 · ') + '단 (당분간 못 해요)' : '아직 없어요') + '</small></span>' + (ME.admin && dn.length ? '<button data-u="' + esc(c.name) + '">잠금 풀기</button>' : '') + '</div>';
+        }
+        var mine = lg.list.filter(function (x) { return x.name === c.name; }), day = '', body = '';
+        mine.forEach(function (x) {
+          if (x.day !== day) { day = x.day; body += '<div class="sub" style="padding:10px 0 2px;font-weight:700">' + esc(x.day.slice(5).replace('-', '월 ') + '일') + '</div>'; }
+          body += '<div class="r"><span class="nm">' + esc(MODENAME[x.mode] || x.mode) + '<small>' + esc(x.from + (x.to !== x.from ? ' ~ ' + x.to : '')) + '</small></span><span class="pt">' + fmt(x.ok + x.bad) + '문제<small style="display:block;text-align:right;color:var(--sub);font-weight:600;font-size:12px">정답 ' + fmt(x.ok) + (x.pts ? ' · ' + (x.pts > 0 ? '+' : '') + fmt(x.pts) + '점' : '') + '</small></span></div>';
+        });
+        h += '<details><summary>날짜별 기록 보기 (' + mine.length + '번)</summary>' + (body || '<div class="sub">아직 기록이 없어요.</div>') + '</details></div>';
       });
       box.innerHTML = h;
+      var us = box.querySelectorAll('[data-u]');
+      for (var i = 0; i < us.length; i++) us[i].onclick = function () {
+        var nm = this.getAttribute('data-u');
+        if (!confirm(nm + '의 잠긴 단을 모두 풀까요? 단마다 다시 한 번씩 할 수 있어요.')) return;
+        rpc('gugu_dan_unlock', { tok: TOKEN, p_id: nm }).then(function () { logList(); }).catch(function (e) { if (e.login) lost(); });
+      };
     }).catch(function (e) { if (e.login) lost(); });
   }
   function seenText(x) {                 // 최근 접속 시각 (옛 계정은 마지막으로 문제를 푼 시각, 없으면 기록 없음)
@@ -460,9 +501,9 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     rpc('gugu_admin_list', { tok: TOKEN }).then(function (r) {
       var box = document.getElementById('alist'); if (!box || !r.list) return;
       var h = note || '';
-      var G = [['team', '팀그라운드'], ['castle', '중고등부'], ['elem', '초등부'], ['', '그 외']];
+      var G = [['home', '임우리 · 임두리'], ['team', '팀그라운드'], ['castle', '중고등부'], ['elem', '초등부'], ['', '그 외']];
       G.forEach(function (g) {
-        var rows = r.list.filter(function (x) { return g[0] ? x.grp === g[0] : (x.grp !== 'team' && x.grp !== 'castle' && x.grp !== 'elem'); });
+        var rows = r.list.filter(function (x) { return g[0] === 'home' ? isHome(x) : !isHome(x) && (g[0] ? x.grp === g[0] : (x.grp !== 'team' && x.grp !== 'castle' && x.grp !== 'elem')); });
         if (!rows.length) return;
         h += '<div class="sub" style="padding:14px 0 4px;font-weight:700;color:var(--ink)">' + g[1] + ' · ' + rows.length + '명</div>';
         rows.forEach(function (x) {
@@ -508,11 +549,11 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
   function scoreSeg(cur) {                 // 구구단 점수 도전 안에서 구구단 / 큰 수 곱셈 고르기
-    return '<div class="seg" id="ssg" style="margin:10px 0 12px"><button data-k="dan" class="' + (cur === 'dan' ? 'on' : '') + '">구구단 (한 자리)</button><button data-k="big" class="' + (cur === 'big' ? 'on' : '') + '">큰 수 곱셈</button></div>';
+    return '<div class="seg" id="ssg" style="margin:10px 0 12px"><button data-k="dan" class="' + (cur === 'dan' ? 'on' : '') + '">구구단 (한 자리)</button><button data-k="big" class="' + (cur === 'big' ? 'on' : '') + '">큰 수 곱셈</button><button data-k="div" class="' + (cur === 'div' ? 'on' : '') + '">나눗셈</button></div>';
   }
   function bindScoreSeg() {
     var bs = document.querySelectorAll('#ssg button');
-    for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { if (this.getAttribute('data-k') === 'big') { MODE = 'big'; drawBig(); } else { MODE = 'dan'; draw(null); } };
+    for (var i = 0; i < bs.length; i++) bs[i].onclick = function () { var k = this.getAttribute('data-k'); if (k === 'big') { MODE = 'big'; drawBig(); } else if (k === 'div') { MODE = 'div'; drawDiv(); } else { MODE = 'dan'; draw(null); } };
   }
   function drawBig() {
     $app.innerHTML = head(true) +
@@ -527,6 +568,17 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     document.getElementById('bk').onclick = home;
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
+  function drawDiv() {
+    $app.innerHTML = head(true) +
+      '<div class="card"><h2>🎯 구구단 점수 도전</h2>' + scoreSeg('div') +
+      '<div class="rule">두 자리 ÷ 한 자리, 나누어떨어지는 문제예요.<br>예) 84 ÷ 4 = 21, 56 ÷ 7 = 8<br>몫은 항상 자연수예요.<br>10문제, 문제마다 ' + BIG.div.sec + '초예요.<br>구구단보다 점수를 1.5배로 받아요.</div></div>' +
+      '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
+    tabs('game');
+    bindScoreSeg();
+    document.getElementById('go').onclick = start;
+    document.getElementById('bk').onclick = home;
+    document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
+  }
   function drawEasy() {
     $app.innerHTML = head(true) +
       '<div class="card"><h2>✨ 쉬운 곱셈</h2><div class="rule">두 자리 × 한 자리, 올림이 없는 쉬운 문제예요.<br>예) 12 × 3, 23 × 2, 41 × 4<br>10문제, 문제마다 ' + BIG.easy.sec + '초예요.</div></div>' +
@@ -537,11 +589,16 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     document.getElementById('lo').onclick = GUEST ? function () { login('', 'in'); } : out;
   }
   function draw(board) {
-    var all = picked.length === 0, chips = '';
-    for (var d = 2; d <= 9; d++) chips += '<button data-d="' + d + '" class="' + (picked.indexOf(d) >= 0 ? 'on' : '') + '">' + d + '단</button>';
+    var all = picked.length === 0, chips = '', dd = doneDans(), lockOn = !!(ME && ME.lock), none = lockOn && freeDans().length === 0, note = LOCKNOTE; LOCKNOTE = '';
+    picked = picked.filter(function (v) { return dd.indexOf(v) < 0; });
+    all = picked.length === 0;
+    for (var d = 2; d <= 9; d++) { var dn = dd.indexOf(d) >= 0; chips += '<button data-d="' + d + '" class="' + (picked.indexOf(d) >= 0 ? 'on' : '') + '"' + (dn ? ' disabled' : '') + '>' + (dn ? '🔒 ' : '') + d + '단</button>'; }
     $app.innerHTML = head(true) +
-      '<div class="card"><h2>🎯 구구단 점수 도전</h2>' + scoreSeg('dan') + '<div class="sub" style="margin-bottom:8px">30문제 · 연습할 단을 골라요.</div><h2 style="font-size:14px;color:var(--sub);margin-top:10px">연습할 단</h2><div class="sub">고르지 않으면 2단부터 9단까지 모두 나옵니다.</div><div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all">전체 (2~9단)</button></div></div>' +
-      '<button class="cta" id="go">▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
+      '<div class="card"><h2>🎯 구구단 점수 도전</h2>' + scoreSeg('dan') + '<div class="sub" style="margin-bottom:8px">30문제 · 연습할 단을 골라요.</div><h2 style="font-size:14px;color:var(--sub);margin-top:10px">연습할 단</h2><div class="sub">' + (lockOn ? '고르지 않으면 아직 안 한 단이 모두 나옵니다.' : '고르지 않으면 2단부터 9단까지 모두 나옵니다.') + '</div>' +
+      (lockOn ? '<div class="warn" style="color:var(--gold);text-align:left;margin:8px 0 0">' + (none ? '🔒 구구단은 당분간 쉬어요. 두 자리 곱셈과 나눗셈은 계속 할 수 있어요.' : '🔒 한 번 한 단은 당분간 쉬어요. 두 자리 문제는 계속 할 수 있어요.') + '</div>' : '') +
+      (note ? '<div class="warn" style="text-align:left;margin:8px 0 0">' + esc(note) + '</div>' : '') +
+      '<div class="dans">' + chips + '<button class="all ' + (all ? 'on' : '') + '" data-d="all"' + (none ? ' disabled' : '') + '>' + (lockOn ? '아직 안 한 단 전체' : '전체 (2~9단)') + '</button></div></div>' +
+      '<button class="cta" id="go"' + (none ? ' disabled' : '') + '>▶ 게임 시작</button><button class="cta ghost" id="bk">← 게임 고르기</button>';
     tabs('game');
     bindScoreSeg();
     var bs = $app.querySelectorAll('.dans button');
@@ -558,7 +615,7 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
 
   // ---------- 문제 만들기 ----------
   function deck() {
-    var dans = picked.length ? picked.slice() : [2, 3, 4, 5, 6, 7, 8, 9], pool = [];
+    var dans = picked.length ? picked.slice() : (ME && ME.lock ? freeDans() : [2, 3, 4, 5, 6, 7, 8, 9]), pool = [];
     dans.forEach(function (a) { for (var b = 2; b <= 9; b++) pool.push([a, b]); });
     var out = [];
     while (out.length < ROUNDS) {
@@ -593,6 +650,31 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
       }
     }
     return out;
+  }
+  function divDeck(n) {                       // 두 자리 ÷ 한 자리, 나누어떨어지는 것만 (몫은 자연수, 몫이 10인 쉬운 문제는 뺌)
+    var pool = [], out = [];
+    for (var b = 2; b <= 9; b++) for (var q = 2; b * q <= 99; q++) if (b * q >= 10 && q !== 10) pool.push([b * q, b]);
+    while (out.length < n) {
+      shuffle(pool);
+      for (var i = 0; i < pool.length && out.length < n; i++) {
+        var last = out[out.length - 1];
+        if (last && last[0] === pool[i][0] && last[1] === pool[i][1]) continue;
+        out.push(pool[i]);
+      }
+    }
+    return out;
+  }
+  function divChoices(a, b) {                 // 몫 1개 + 헷갈리기 쉬운 오답 3개
+    var ans = a / b, c = {}, cand = [ans + 1, ans - 1, ans + 2, ans - 2, ans + 10, ans - 10, ans + 3, ans - 3];
+    if (ans >= 10) cand.push(+String(ans).split('').reverse().join(''));
+    shuffle(cand);
+    var wrong = [];
+    for (var i = 0; i < cand.length && wrong.length < 3; i++) {
+      var v = cand[i];
+      if (v > 0 && v !== ans && !c[v]) { c[v] = 1; wrong.push(v); }
+    }
+    for (var k = 1; wrong.length < 3; k++) { var w = ans + 10 + k; if (!c[w]) { c[w] = 1; wrong.push(w); } }
+    return shuffle([ans].concat(wrong));
   }
   function choices(a, b) {                   // 정답 1개 + 헷갈리기 쉬운 오답 3개
     var ans = a * b, c = {}, cand = [a * (b + 1), a * (b - 1), (a + 1) * b, (a - 1) * b, ans + 10, ans - 10, ans + 2, ans - 2, ans + 1, ans - 1];
@@ -647,13 +729,20 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
         G = { mode: MODE, n: MODE === 'sq' ? SQ_N : TA_N, i: 0, right: 0, wrong: 0, last: null, t0: performance.now(), raf: 0, nt: 0, lock: false, over: false };
         showTA(); swTick(); return;
       }
-      var mk = MODE === 'big' ? 'big' + BIGLV : MODE === 'easy' ? 'easy' : 'dan', n = MODE === 'big' || MODE === 'easy' ? 10 : ROUNDS;
-      G = { mode: mk, mult: MULT[mk], n: n, qs: MODE === 'big' ? bigDeck(n, BIGLV) : MODE === 'easy' ? easyDeck(n) : deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, nt: 0, lock: false, paused: false, pend: [], fail: false };
+      var mk = MODE === 'big' ? 'big' + BIGLV : MODE === 'easy' ? 'easy' : MODE === 'div' ? 'div' : 'dan', n = MODE === 'big' || MODE === 'easy' || MODE === 'div' ? 10 : ROUNDS;
+      G = { mode: mk, mult: MULT[mk], n: n, qs: MODE === 'big' ? bigDeck(n, BIGLV) : MODE === 'easy' ? easyDeck(n) : MODE === 'div' ? divDeck(n) : deck(), i: 0, score: 0, right: 0, combo: 0, maxCombo: 0, t0: 0, raf: 0, nt: 0, lock: false, paused: false, pend: [], fail: false };
       show();
     }
     function run() {
       if (GUEST) { begin(); return; }
-      rpc(MODE === 'sq' ? 'gugu_sq_start' : MODE === 'ta' ? 'gugu_ta_start' : 'gugu_start', { tok: TOKEN }).then(begin).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
+      var score = !(MODE === 'sq' || MODE === 'ta'), args = { tok: TOKEN };
+      if (score) { args.p_mode = MODE === 'big' ? 'big' + BIGLV : MODE === 'easy' ? 'easy' : MODE === 'div' ? 'div' : 'dan'; if (MODE === 'dan') args.p_dans = picked.length ? picked : freeDans(); }
+      rpc(MODE === 'sq' ? 'gugu_sq_start' : MODE === 'ta' ? 'gugu_ta_start' : 'gugu_start', args).then(function (r) {
+        if (r && r.done && ME) ME.done = r.done;
+        if (r && r.error === 'dan_locked') { LOCKNOTE = '이미 한 단이 들어 있어요. 아직 안 한 단을 골라 주세요.'; draw(null); return; }
+        if (r && r.error) { home(); return; }
+        begin();
+      }).catch(function (e) { if (e.login) lost(); else { if (go) go.disabled = false; } });
     }
     if (MODE === 'ta' || MODE === 'sq') countdown(run); else run();
   }
@@ -668,14 +757,14 @@ body.play{position:fixed;inset:0;width:100%;overflow:hidden;overscroll-behavior:
     })();
   }
   function show() {
-    var q = G.qs[G.i], a = q[0], b = q[1], opts = choices(a, b);
-    G.ans = a * b; G.lock = false; G.limit = G.mode === 'dan' ? Math.max(MIN_SEC, START_SEC - G.combo) : BIG[G.mode].sec;
+    var q = G.qs[G.i], a = q[0], b = q[1], dv = G.mode === 'div', opts = dv ? divChoices(a, b) : choices(a, b);
+    G.ans = dv ? a / b : a * b; G.lock = false; G.limit = G.mode === 'dan' ? Math.max(MIN_SEC, START_SEC - G.combo) : BIG[G.mode].sec;
     var btn = '';
     opts.forEach(function (v) { btn += '<button data-v="' + v + '">' + v + '</button>'; });
     $app.innerHTML = head(false, true) +
       '<div class="hud"><span class="n"><b>' + (G.i + 1) + '</b> / ' + G.n + '</span><span class="tl" id="tl">' + G.limit + '초</span><span class="sc' + (G.score < 0 ? ' neg' : '') + '">' + fmt(G.score) + '<small>점</small></span></div>' +
       '<div class="tbar" id="tb"><i id="tf"></i></div>' +
-      '<div class="card q' + (G.combo >= 10 ? ' hot hot2' : G.combo >= 3 ? ' hot' : '') + '"><div class="eq">' + a + '<span>×</span>' + b + '<span>=</span><em>?</em></div></div>' +
+      '<div class="card q' + (G.combo >= 10 ? ' hot hot2' : G.combo >= 3 ? ' hot' : '') + '"><div class="eq">' + a + '<span>' + (dv ? '÷' : '×') + '</span>' + b + '<span>=</span><em>?</em></div></div>' +
       '<div class="combo">' + (G.combo >= 1 ? '🔥 ' + G.combo + '연속 정답!' + (G.mode !== 'dan' ? '' : G.limit > MIN_SEC ? ' · 제한 시간 ' + G.limit + '초' : ' · 제한 시간 최소 ' + MIN_SEC + '초') : '') + '</div>' +
       '<div class="opts" id="op">' + btn + '</div><div class="fb" id="fb"></div>';
     var bs = document.querySelectorAll('#op button');
